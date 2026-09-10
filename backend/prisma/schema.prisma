@@ -1,0 +1,193 @@
+// Prisma schema for HR Onboarding Platform (Phase 0)
+// Datasource and generator definition
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  users               User[]
+  departments         Department[]
+  employees           Employee[]
+  mentors             Mentor[]
+  onboardingTemplates OnboardingTemplate[]
+  documents           Document[]
+  documentChunks      DocumentChunk[]
+
+  @@map("companies")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  companyId    String   @map("company_id")
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         String   @map("role") // 'hr_admin' | 'manager' | 'employee'
+  departmentId String?  @map("department_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  company           Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  department        Department?          @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  employee          Employee?
+  mentors           Mentor[]
+  createdTemplates  OnboardingTemplate[] @relation("TemplateCreator")
+  uploadedDocuments Document[]           @relation("DocumentUploader")
+
+  @@map("users")
+}
+
+model Department {
+  id        String @id @default(uuid())
+  companyId String @map("company_id")
+  name      String
+
+  // Relations
+  company             Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  users               User[]
+  employees           Employee[]
+  mentors             Mentor[]
+  onboardingTemplates OnboardingTemplate[]
+
+  @@map("departments")
+}
+
+model Employee {
+  id             String   @id @default(uuid())
+  companyId      String   @map("company_id")
+  userId         String?  @unique @map("user_id")
+  name           String
+  email          String
+  departmentId   String   @map("department_id")
+  jobRole        String   @map("job_role")
+  startDate      DateTime @map("start_date")
+  managerId      String?  @map("manager_id")
+  employmentType String   @map("employment_type")
+  mentorId       String?  @map("mentor_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  // Relations
+  company    Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user       User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  department Department     @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  tasks      EmployeeTask[]
+
+  @@map("employees")
+}
+
+model Mentor {
+  id                 String  @id @default(uuid())
+  companyId          String  @map("company_id")
+  departmentId       String  @map("department_id")
+  userId             String  @map("user_id")
+  isActive           Boolean @default(true) @map("is_active")
+  currentMenteeCount Int     @default(0) @map("current_mentee_count")
+
+  // Relations
+  company    Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("mentors")
+}
+
+model OnboardingTemplate {
+  id           String   @id @default(uuid())
+  companyId    String   @map("company_id")
+  departmentId String?  @map("department_id")
+  jobRole      String?  @map("job_role")
+  name         String
+  isDefault    Boolean  @default(false) @map("is_default")
+  createdBy    String   @map("created_by")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  company    Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  department Department?              @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  creator    User                     @relation("TemplateCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  tasks      OnboardingTemplateTask[]
+
+  @@map("onboarding_templates")
+}
+
+model OnboardingTemplateTask {
+  id            String  @id @default(uuid())
+  templateId    String  @map("template_id")
+  title         String
+  description   String?
+  category      String
+  orderIndex    Int     @map("order_index")
+  assigneeType  String  @map("assignee_type")
+  dueOffsetDays Int     @map("due_offset_days")
+
+  // Relations
+  template OnboardingTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@map("onboarding_template_tasks")
+}
+
+model EmployeeTask {
+  id                   String    @id @default(uuid())
+  employeeId           String    @map("employee_id")
+  title                String
+  description          String?
+  category             String
+  orderIndex           Int       @map("order_index")
+  assigneeType         String    @map("assignee_type")
+  dueDate              DateTime? @map("due_date")
+  status               String    @default("pending") @map("status") // 'pending' | 'in_progress' | 'completed'
+  completedAt          DateTime? @map("completed_at")
+  sourceTemplateTaskId String?   @map("source_template_task_id") // Snapshot copy, not a live FK dependency
+
+  // Relations
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("employee_tasks")
+}
+
+model Document {
+  id          String   @id @default(uuid())
+  companyId   String   @map("company_id")
+  uploadedBy  String   @map("uploaded_by")
+  filename    String
+  storagePath String   @map("storage_path")
+  status      String   @default("pending") @map("status") // 'pending' | 'processing' | 'ready' | 'failed'
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  company Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User            @relation("DocumentUploader", fields: [uploadedBy], references: [id], onDelete: Cascade)
+  chunks  DocumentChunk[]
+
+  @@map("documents")
+}
+
+model DocumentChunk {
+  id         String   @id @default(uuid())
+  documentId String   @map("document_id")
+  companyId  String   @map("company_id")
+  content    String
+  // For document_chunks.embedding, we use Unsupported("vector(384)") because pgvector
+  // is not natively modeled by Prisma. pgvector extension must be enabled on PostgreSQL.
+  embedding  Unsupported("vector(384)")?
+  chunkIndex Int      @map("chunk_index")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // Relations (ON DELETE CASCADE from documents)
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("document_chunks")
+}
