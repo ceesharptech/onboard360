@@ -13,10 +13,10 @@ const MainApp: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#010102] flex items-center justify-center text-[#8a8f98]">
+      <div className="min-h-screen bg-[#08080a] flex items-center justify-center text-[#8a8f98]">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-[#5e6ad2] border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm font-medium">Initializing workspace...</span>
+          <div className="w-7 h-7 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+          <span className="text-xs font-medium tracking-wide text-[#a0a6b5]">Initializing workspace...</span>
         </div>
       </div>
     );

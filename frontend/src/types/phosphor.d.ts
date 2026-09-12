@@ -1,12 +1,14 @@
-declare module '@phosphor-icons/react' {
-  import React from 'react';
+declare module "@phosphor-icons/react-mine" {
+  import React from "react";
   export interface IconProps extends React.SVGAttributes<SVGElement> {
     color?: string;
     size?: string | number;
-    weight?: 'thin' | 'light' | 'regular' | 'bold' | 'fill' | 'duotone';
+    weight?: "thin" | "light" | "regular" | "bold" | "fill" | "duotone";
     mirrored?: boolean;
   }
-  export type Icon = React.ForwardRefExoticComponent<IconProps & React.RefAttributes<SVGSVGElement>>;
+  export type Icon = React.ForwardRefExoticComponent<
+    IconProps & React.RefAttributes<SVGSVGElement>
+  >;
 
   export const Sparkle: Icon;
   export const ShieldCheck: Icon;

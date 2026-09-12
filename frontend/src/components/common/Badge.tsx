@@ -2,7 +2,7 @@ import React from 'react';
 
 export interface BadgeProps {
   children: React.ReactNode;
-  variant?: 'blue' | 'green' | 'orange' | 'purple' | 'gray';
+  variant?: 'white' | 'blue' | 'green' | 'orange' | 'purple' | 'gray';
   size?: 'sm' | 'md';
   icon?: React.ReactNode;
 }
@@ -14,11 +14,12 @@ export const Badge: React.FC<BadgeProps> = ({
   icon,
 }) => {
   const variantStyles = {
-    blue: 'bg-[rgba(94,106,210,0.12)] text-[#828fff] border-[rgba(94,106,210,0.3)]',
-    green: 'bg-[rgba(39,166,68,0.12)] text-[#27a644] border-[rgba(39,166,68,0.3)]',
-    orange: 'bg-[rgba(217,115,13,0.12)] text-[#d9730d] border-[rgba(217,115,13,0.3)]',
-    purple: 'bg-[rgba(122,127,173,0.15)] text-[#a5abdf] border-[rgba(122,127,173,0.3)]',
-    gray: 'bg-[#141516] text-[#d0d6e0] border-[#23252a]',
+    white: 'bg-white/[0.08] text-[#f7f8f8] border-white/[0.12]',
+    blue: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
+    green: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    orange: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    purple: 'bg-purple-500/10 text-purple-300 border-purple-500/20',
+    gray: 'bg-white/[0.04] text-[#8a8f98] border-white/[0.06]',
   };
 
   const sizeStyles = {

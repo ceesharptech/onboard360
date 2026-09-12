@@ -1,59 +1,63 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import type {
   Employee,
   Department,
   Mentor,
   OnboardingTemplate,
-} from '../../api/endpoints';
-import {
-  employeeApi,
-  departmentApi,
-  templateApi,
-} from '../../api/endpoints';
-import { Card } from '../../components/common/Card';
-import { Button } from '../../components/common/Button';
-import { Badge } from '../../components/common/Badge';
-import { Modal } from '../../components/common/Modal';
-import { Input } from '../../components/common/Input';
-import { Select } from '../../components/common/Select';
+} from "../../api/endpoints";
+import { employeeApi, departmentApi, templateApi } from "../../api/endpoints";
+import { Card } from "../../components/common/Card";
+import { Button } from "../../components/common/Button";
+import { Badge } from "../../components/common/Badge";
+import { Modal } from "../../components/common/Modal";
+import { Input } from "../../components/common/Input";
+import { Select } from "../../components/common/Select";
 import {
   UserPlus,
   Buildings,
   Trash,
   Plus,
   Sparkle,
-} from '@phosphor-icons/react';
+} from "@phosphor-icons/react";
 
 export interface HrAdminDashboardProps {
-  initialTab?: 'employees' | 'departments';
+  initialTab?: "employees" | "departments";
 }
 
 export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
-  initialTab = 'employees',
+  initialTab = "employees",
 }) => {
-  const [activeTab, setActiveTab] = useState<'employees' | 'departments'>(initialTab);
+  const [activeTab, setActiveTab] = useState<"employees" | "departments">(
+    initialTab,
+  );
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [templates, setTemplates] = useState<OnboardingTemplate[]>([]);
-  const [departmentMentors, setDepartmentMentors] = useState<Record<string, Mentor[]>>({});
+  const [departmentMentors, setDepartmentMentors] = useState<
+    Record<string, Mentor[]>
+  >({});
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // New Employee Modal State
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
-  const [empName, setEmpName] = useState('');
-  const [empEmail, setEmpEmail] = useState('');
-  const [empDeptId, setEmpDeptId] = useState('');
-  const [empRole, setEmpRole] = useState('');
-  const [empStartDate, setEmpStartDate] = useState(new Date().toISOString().split('T')[0]);
-  const [empType, setEmpType] = useState<'full_time' | 'part_time' | 'contract'>('full_time');
+  const [empName, setEmpName] = useState("");
+  const [empEmail, setEmpEmail] = useState("");
+  const [empDeptId, setEmpDeptId] = useState("");
+  const [empRole, setEmpRole] = useState("");
+  const [empStartDate, setEmpStartDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
+  const [empType, setEmpType] = useState<
+    "full_time" | "part_time" | "contract"
+  >("full_time");
   const [isCreatingEmployee, setIsCreatingEmployee] = useState(false);
 
   // Add Mentor Modal State
   const [isMentorModalOpen, setIsMentorModalOpen] = useState(false);
-  const [targetDeptId, setTargetDeptId] = useState('');
-  const [mentorUserId, setMentorUserId] = useState('');
+  const [targetDeptId, setTargetDeptId] = useState("");
+  const [mentorUserId, setMentorUserId] = useState("");
   const [isAddingMentor, setIsAddingMentor] = useState(false);
 
   const loadData = async () => {
@@ -84,11 +88,13 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
           } catch {
             mentorMap[dept.id] = [];
           }
-        })
+        }),
       );
       setDepartmentMentors(mentorMap);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load company directory');
+      setError(
+        err instanceof Error ? err.message : "Failed to load company directory",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -106,15 +112,19 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
         t.departmentId === empDeptId &&
         t.jobRole &&
         empRole &&
-        t.jobRole.toLowerCase() === empRole.trim().toLowerCase()
+        t.jobRole.toLowerCase() === empRole.trim().toLowerCase(),
     );
-    if (exactMatch) return { template: exactMatch, type: 'Exact Role Match' };
+    if (exactMatch) return { template: exactMatch, type: "Exact Role Match" };
 
-    const deptDefault = templates.find((t) => t.departmentId === empDeptId && t.isDefault);
-    if (deptDefault) return { template: deptDefault, type: 'Department Default Fallback' };
+    const deptDefault = templates.find(
+      (t) => t.departmentId === empDeptId && t.isDefault,
+    );
+    if (deptDefault)
+      return { template: deptDefault, type: "Department Default Fallback" };
 
     const companyDefault = templates.find((t) => t.isDefault);
-    if (companyDefault) return { template: companyDefault, type: 'Company-Wide Fallback' };
+    if (companyDefault)
+      return { template: companyDefault, type: "Company-Wide Fallback" };
 
     return null;
   };
@@ -122,7 +132,7 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
   const handleCreateEmployee = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!empName || !empEmail || !empDeptId || !empRole) {
-      setError('Please fill in all required fields');
+      setError("Please fill in all required fields");
       return;
     }
 
@@ -139,12 +149,14 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
       });
 
       setIsEmployeeModalOpen(false);
-      setEmpName('');
-      setEmpEmail('');
-      setEmpRole('');
+      setEmpName("");
+      setEmpEmail("");
+      setEmpRole("");
       loadData();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to create employee');
+      setError(
+        err instanceof Error ? err.message : "Failed to create employee",
+      );
     } finally {
       setIsCreatingEmployee(false);
     }
@@ -158,22 +170,24 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
     try {
       await departmentApi.addMentor(targetDeptId, mentorUserId);
       setIsMentorModalOpen(false);
-      setMentorUserId('');
+      setMentorUserId("");
       loadData();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to add mentor to pool');
+      setError(
+        err instanceof Error ? err.message : "Failed to add mentor to pool",
+      );
     } finally {
       setIsAddingMentor(false);
     }
   };
 
   const handleRemoveMentor = async (deptId: string, mentorId: string) => {
-    if (!confirm('Remove this mentor from the active department pool?')) return;
+    if (!confirm("Remove this mentor from the active department pool?")) return;
     try {
       await departmentApi.removeMentor(deptId, mentorId);
       loadData();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to remove mentor');
+      setError(err instanceof Error ? err.message : "Failed to remove mentor");
     }
   };
 
@@ -182,19 +196,22 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#23252a]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/[0.06]">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#f7f8f8] m-0">HR Administration</h1>
-          <p className="text-xs text-[#8a8f98] mt-1">
-            Manage employees, auto-matched onboarding workflows, and department mentor pools.
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-[#f7f8f8] m-0">
+            HR Administration
+          </h1>
+          <p className="text-sm text-[#8a8f98] mt-1">
+            Manage employees, auto-matched onboarding workflows, and department
+            mentor pools.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          {activeTab === 'employees' ? (
+          {activeTab === "employees" ? (
             <Button
               variant="primary"
-              icon={<UserPlus size={16} />}
+              icon={<UserPlus size={15} />}
               onClick={() => setIsEmployeeModalOpen(true)}
             >
               Add Employee
@@ -202,9 +219,9 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
           ) : (
             <Button
               variant="primary"
-              icon={<Plus size={16} />}
+              icon={<Plus size={15} />}
               onClick={() => {
-                setTargetDeptId(departments[0]?.id || '');
+                setTargetDeptId(departments[0]?.id || "");
                 setIsMentorModalOpen(true);
               }}
             >
@@ -221,23 +238,23 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
       )}
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-[#23252a] pb-1">
+      <div className="flex items-center gap-1.5 pb-2">
         <button
-          onClick={() => setActiveTab('employees')}
-          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
-            activeTab === 'employees'
-              ? 'bg-[#141516] text-[#f7f8f8] border border-[#23252a]'
-              : 'text-[#8a8f98] hover:text-[#f7f8f8]'
+          onClick={() => setActiveTab("employees")}
+          className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors cursor-pointer ${
+            activeTab === "employees"
+              ? "bg-white/[0.08] text-white border border-white/[0.12] shadow-xs"
+              : "text-[#8a8f98] hover:text-white hover:bg-white/[0.04]"
           }`}
         >
           Company Employees ({employees.length})
         </button>
         <button
-          onClick={() => setActiveTab('departments')}
-          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
-            activeTab === 'departments'
-              ? 'bg-[#141516] text-[#f7f8f8] border border-[#23252a]'
-              : 'text-[#8a8f98] hover:text-[#f7f8f8]'
+          onClick={() => setActiveTab("departments")}
+          className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors cursor-pointer ${
+            activeTab === "departments"
+              ? "bg-white/[0.08] text-white border border-white/[0.12] shadow-xs"
+              : "text-[#8a8f98] hover:text-white hover:bg-white/[0.04]"
           }`}
         >
           Mentor Pools ({departments.length} Departments)
@@ -247,16 +264,16 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
       {isLoading ? (
         <div className="flex items-center justify-center h-48 text-[#8a8f98]">
           <div className="flex flex-col items-center gap-3">
-            <div className="w-6 h-6 border-2 border-[#5e6ad2] border-t-transparent rounded-full animate-spin" />
-            <span className="text-xs">Loading records...</span>
+            <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+            <span className="text-xs text-[#a0a6b5]">Loading records...</span>
           </div>
         </div>
-      ) : activeTab === 'employees' ? (
+      ) : activeTab === "employees" ? (
         /* Employees Table Card */
         <Card className="p-0 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-[#f7f8f8]">
-              <thead className="bg-[#141516] text-[#8a8f98] border-b border-[#23252a] uppercase font-semibold text-[11px] tracking-wider">
+              <thead className="bg-[#14161a] text-[#8a8f98] border-b border-white/[0.06] uppercase font-medium text-[11px] tracking-wider">
                 <tr>
                   <th className="py-3 px-4">Employee</th>
                   <th className="py-3 px-4">Department</th>
@@ -266,43 +283,54 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
                   <th className="py-3 px-4">Progress</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#23252a]">
+              <tbody className="divide-y divide-white/[0.06]">
                 {employees.map((emp) => {
                   const percent = emp.progress?.percentComplete ?? 0;
                   const completed = emp.progress?.completedTasks ?? 0;
                   const total = emp.progress?.totalTasks ?? 0;
 
                   return (
-                    <tr key={emp.id} className="hover:bg-[#141516] transition-colors">
+                    <tr
+                      key={emp.id}
+                      className="hover:bg-[#14161a]/60 transition-colors"
+                    >
                       <td className="py-3.5 px-4">
-                        <div className="font-semibold text-[#f7f8f8]">{emp.name}</div>
-                        <div className="text-[#8a8f98] text-[11px]">{emp.email}</div>
+                        <div className="font-medium text-white">{emp.name}</div>
+                        <div className="text-[#8a8f98] text-[11px] mt-0.5">
+                          {emp.email}
+                        </div>
                       </td>
                       <td className="py-3.5 px-4 text-[#8a8f98]">
-                        {emp.department?.name || 'N/A'}
+                        {emp.department?.name || "N/A"}
                       </td>
                       <td className="py-3.5 px-4">
-                        <Badge variant="blue">{emp.jobRole}</Badge>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-white/[0.06] text-white/90 border border-white/[0.08]">
+                          {emp.jobRole}
+                        </span>
                       </td>
                       <td className="py-3.5 px-4 text-[#8a8f98]">
                         {new Date(emp.startDate).toLocaleDateString()}
                       </td>
                       <td className="py-3.5 px-4 text-[#8a8f98]">
                         {emp.mentor ? (
-                          <span className="text-[#27a644] font-medium">{emp.mentor.email}</span>
+                          <span className="text-emerald-400 font-medium">
+                            {emp.mentor.email}
+                          </span>
                         ) : (
-                          <span className="text-[#62666d]">Unassigned</span>
+                          <span className="text-[#565964]">Unassigned</span>
                         )}
                       </td>
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-2 max-w-[130px]">
-                          <div className="w-full h-1.5 bg-[#141516] rounded-full overflow-hidden border border-[#23252a]">
+                          <div className="w-full h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-[#5e6ad2] rounded-full"
+                              className="h-full bg-white rounded-full transition-all duration-300"
                               style={{ width: `${percent}%` }}
                             />
                           </div>
-                          <span className="text-[11px] font-medium text-[#f7f8f8]">{percent}%</span>
+                          <span className="text-[11px] font-medium text-white/90">
+                            {percent}%
+                          </span>
                         </div>
                         <div className="text-[10px] text-[#62666d] mt-0.5">
                           {completed}/{total} completed
@@ -324,15 +352,17 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
             return (
               <Card key={dept.id} className="p-5 flex flex-col justify-between">
                 <div>
-                  <div className="flex items-center justify-between pb-3 border-b border-[#23252a] mb-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-white/[0.06] mb-4">
                     <div className="flex items-center gap-2">
-                      <Buildings size={18} className="text-[#5e6ad2]" />
-                      <h3 className="text-base font-semibold text-[#f7f8f8] m-0">{dept.name}</h3>
+                      <Buildings size={17} className="text-white/80" />
+                      <h3 className="text-sm font-semibold text-white m-0">
+                        {dept.name}
+                      </h3>
                     </div>
                     <Badge variant="purple">{mentors.length} Mentors</Badge>
                   </div>
 
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-[#62666d] block mb-2">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-[#62666d] block mb-2">
                     Active Mentor Pool
                   </span>
 
@@ -341,21 +371,23 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
                       No active mentors in this department pool.
                     </p>
                   ) : (
-                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
                       {mentors.map((m) => (
                         <div
                           key={m.id}
-                          className="flex items-center justify-between p-2.5 rounded-lg bg-[#141516] border border-[#23252a] text-xs"
+                          className="flex items-center justify-between p-2.5 rounded-lg bg-[#14161a] border border-white/[0.06] hover:border-white/[0.12] text-xs transition-colors"
                         >
                           <div>
-                            <div className="font-medium text-[#f7f8f8]">{m.user.email}</div>
-                            <div className="text-[11px] text-[#27a644]">
+                            <div className="font-medium text-white/90">
+                              {m.user.email}
+                            </div>
+                            <div className="text-[11px] text-emerald-400 mt-0.5">
                               {m.currentMenteeCount} active mentee(s)
                             </div>
                           </div>
                           <button
                             onClick={() => handleRemoveMentor(dept.id, m.id)}
-                            className="text-[#62666d] hover:text-[#f87171] p-1 cursor-pointer"
+                            className="text-[#62666d] hover:text-[#f87171] p-1 cursor-pointer transition-colors"
                             title="Deactivate mentor"
                           >
                             <Trash size={14} />
@@ -366,7 +398,7 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
                   )}
                 </div>
 
-                <div className="pt-4 mt-3 border-t border-[#23252a]">
+                <div className="pt-4 mt-3 border-t border-white/[0.06]">
                   <Button
                     variant="utility"
                     size="sm"
@@ -375,7 +407,7 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
                       setTargetDeptId(dept.id);
                       setIsMentorModalOpen(true);
                     }}
-                    className="w-full"
+                    className="w-full py-3"
                   >
                     Add Mentor to {dept.name}
                   </Button>
@@ -440,36 +472,46 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
             <Select
               label="Employment Type"
               value={empType}
-              onChange={(e) => setEmpType(e.target.value as 'full_time' | 'part_time' | 'contract')}
+              onChange={(e) =>
+                setEmpType(
+                  e.target.value as "full_time" | "part_time" | "contract",
+                )
+              }
               options={[
-                { value: 'full_time', label: 'Full Time' },
-                { value: 'part_time', label: 'Part Time' },
-                { value: 'contract', label: 'Contract' },
+                { value: "full_time", label: "Full Time" },
+                { value: "part_time", label: "Part Time" },
+                { value: "contract", label: "Contract" },
               ]}
             />
           </div>
 
           {/* Real-time Template Matching & Snapshot Preview */}
-          <div className="p-3.5 bg-[#141516] border border-[#23252a] rounded-xl text-xs space-y-1.5">
-            <div className="flex items-center gap-1.5 text-[#828fff] font-medium">
-              <Sparkle size={15} weight="fill" />
+          <div className="p-3.5 bg-[#14161a] border border-white/[0.08] rounded-xl text-xs space-y-1.5">
+            <div className="flex items-center gap-1.5 text-white/90 font-medium">
+              <Sparkle size={14} weight="fill" className="text-amber-400" />
               <span>Snapshot Workflow Preview</span>
             </div>
             {matchedPreview ? (
               <p className="text-[#8a8f98] m-0">
-                Matches template <strong className="text-[#f7f8f8]">"{matchedPreview.template.name}"</strong> (
-                {matchedPreview.template.tasks?.length || 0} tasks).
+                Matches template{" "}
+                <strong className="text-white">
+                  "{matchedPreview.template.name}"
+                </strong>{" "}
+                ({matchedPreview.template.tasks?.length || 0} tasks).
                 <br />
-                <span className="text-[11px] text-[#27a644]">({matchedPreview.type})</span>
+                <span className="text-[11px] text-emerald-400 font-medium">
+                  ({matchedPreview.type})
+                </span>
               </p>
             ) : (
               <p className="text-[#8a8f98] m-0">
-                No template matched yet. An empty onboarding roadmap will be created.
+                No template matched yet. An empty onboarding roadmap will be
+                created.
               </p>
             )}
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#23252a]">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/[0.06]">
             <Button
               type="button"
               variant="ghost"
@@ -478,7 +520,12 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
             >
               Cancel
             </Button>
-            <Button type="submit" variant="primary" size="md" isLoading={isCreatingEmployee}>
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              isLoading={isCreatingEmployee}
+            >
               Create Employee
             </Button>
           </div>
@@ -509,7 +556,7 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
             required
           />
 
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#23252a]">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/[0.06]">
             <Button
               type="button"
               variant="ghost"
@@ -518,7 +565,12 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
             >
               Cancel
             </Button>
-            <Button type="submit" variant="primary" size="md" isLoading={isAddingMentor}>
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              isLoading={isAddingMentor}
+            >
               Enroll Mentor
             </Button>
           </div>

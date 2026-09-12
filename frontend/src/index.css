@@ -2,32 +2,34 @@
 @import url("https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap");
 
-/* Linear Design System Tokens (DESIGN-linear.app.md) */
+/* Linear Dashboard Design System Tokens (Matching Linear Web App UI) */
 @theme {
-  --color-canvas: #010102;
-  --color-surface-1: #0f1011;
-  --color-surface-2: #141516;
-  --color-surface-3: #18191a;
-  --color-surface-4: #191a1b;
+  --color-canvas: #08080a;
+  --color-surface-1: #0f1013;
+  --color-surface-2: #14161a;
+  --color-surface-3: #181a1f;
+  --color-surface-4: #1d1f25;
 
-  --color-hairline: #23252a;
-  --color-hairline-strong: #34343a;
-  --color-hairline-tertiary: #3e3e44;
+  --color-hairline: rgba(255, 255, 255, 0.07);
+  --color-hairline-strong: rgba(255, 255, 255, 0.12);
+  --color-hairline-subtle: rgba(255, 255, 255, 0.04);
 
-  --color-ink: #000000;
+  --color-ink: #f7f8f8;
   --color-ink-muted: #d0d6e0;
   --color-ink-subtle: #8a8f98;
-  --color-ink-tertiary: #62666d;
+  --color-ink-tertiary: #5a5e6b;
 
-  --color-primary: #fffff;
-  --color-primary-hover: #828fff;
-  --color-primary-focus: #5e69d1;
+  --color-primary: #ffffff;
+  --color-primary-hover: #e5e5e5;
+  --color-primary-focus: #f0f0f0;
   --color-brand-secure: #7a7fad;
 
-  --color-semantic-success: #27a644;
+  --color-semantic-success: #22c55e;
+  --color-semantic-amber: #eab308;
+  --color-semantic-orange: #f97316;
 
   --font-sans:
-    "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono:
     "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     monospace;
@@ -35,41 +37,43 @@
 
 :root {
   /* Canvas & Surfaces */
-  --bg: #010102;
-  --surface-1: #0f1011;
-  --surface-2: #141516;
-  --surface-3: #18191a;
-  --surface-4: #191a1b;
+  --bg: #08080a;
+  --surface-1: #0f1013;
+  --surface-2: #14161a;
+  --surface-3: #181a1f;
+  --surface-4: #1d1f25;
 
-  /* Borders / Hairlines */
-  --border: #23252a;
-  --border-strong: #34343a;
-  --border-tertiary: #3e3e44;
+  /* Borders / Hairlines (subtle, restrained) */
+  --border: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.12);
+  --border-subtle: rgba(255, 255, 255, 0.04);
 
   /* Text & Ink */
   --text: #f7f8f8;
   --text-muted: #d0d6e0;
   --text-subtle: #8a8f98;
-  --text-faint: #62666d;
+  --text-faint: #5a5e6b;
 
-  /* Brand Accent: Linear Lavender-Blue */
-  --primary: #5e6ad2;
-  --primary-hover: #828fff;
-  --primary-focus: #5e69d1;
+  /* Brand Accent: Clean White Primary */
+  --primary: #ffffff;
+  --primary-hover: #e5e5e5;
+  --primary-focus: #f0f0f0;
   --brand-secure: #7a7fad;
 
-  /* Semantic */
-  --semantic-success: #27a644;
-  --accent-green: #27a644;
-  --accent-green-bg: rgba(39, 166, 68, 0.12);
-  --accent-orange: #d9730d;
-  --accent-orange-bg: rgba(217, 115, 13, 0.12);
-  --accent-purple: #828fff;
-  --accent-purple-bg: rgba(130, 143, 255, 0.12);
+  /* Semantics */
+  --semantic-success: #22c55e;
+  --accent-green: #22c55e;
+  --accent-green-bg: rgba(34, 197, 94, 0.12);
+  --accent-amber: #eab308;
+  --accent-amber-bg: rgba(234, 179, 8, 0.12);
+  --accent-orange: #f97316;
+  --accent-orange-bg: rgba(249, 115, 22, 0.12);
+  --accent-purple: #a855f7;
+  --accent-purple-bg: rgba(168, 85, 247, 0.12);
 
   /* Typography */
   --sans:
-    "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --mono:
     "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     monospace;
@@ -104,9 +108,9 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #23252a;
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #34343a;
+  background: rgba(255, 255, 255, 0.22);
 }

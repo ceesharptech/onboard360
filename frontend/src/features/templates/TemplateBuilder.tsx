@@ -1,20 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../../context/AuthContext";
 import type {
   OnboardingTemplate,
   TemplateTask,
   Department,
-} from '../../api/endpoints';
-import {
-  templateApi,
-  departmentApi,
-} from '../../api/endpoints';
-import { Card } from '../../components/common/Card';
-import { Button } from '../../components/common/Button';
-import { Badge } from '../../components/common/Badge';
-import { Input } from '../../components/common/Input';
-import { Select } from '../../components/common/Select';
-import { Modal } from '../../components/common/Modal';
+} from "../../api/endpoints";
+import { templateApi, departmentApi } from "../../api/endpoints";
+import { Card } from "../../components/common/Card";
+import { Button } from "../../components/common/Button";
+import { Badge } from "../../components/common/Badge";
+import { Input } from "../../components/common/Input";
+import { Select } from "../../components/common/Select";
+import { Modal } from "../../components/common/Modal";
 import {
   Plus,
   Trash,
@@ -22,7 +19,7 @@ import {
   ArrowDown,
   PencilSimple,
   GitFork,
-} from '@phosphor-icons/react';
+} from "@phosphor-icons/react";
 
 export const TemplateBuilder: React.FC = () => {
   const { user } = useAuth();
@@ -33,10 +30,11 @@ export const TemplateBuilder: React.FC = () => {
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<OnboardingTemplate | null>(null);
-  const [name, setName] = useState('');
-  const [jobRole, setJobRole] = useState('');
-  const [departmentId, setDepartmentId] = useState('');
+  const [editingTemplate, setEditingTemplate] =
+    useState<OnboardingTemplate | null>(null);
+  const [name, setName] = useState("");
+  const [jobRole, setJobRole] = useState("");
+  const [departmentId, setDepartmentId] = useState("");
   const [isDefault, setIsDefault] = useState(false);
   const [tasks, setTasks] = useState<TemplateTask[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -52,7 +50,7 @@ export const TemplateBuilder: React.FC = () => {
       setTemplates(tList);
       setDepartments(dList);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load templates');
+      setError(err instanceof Error ? err.message : "Failed to load templates");
     } finally {
       setIsLoading(false);
     }
@@ -64,17 +62,17 @@ export const TemplateBuilder: React.FC = () => {
 
   const openCreateModal = () => {
     setEditingTemplate(null);
-    setName('');
-    setJobRole('');
-    setDepartmentId(user?.departmentId || (departments[0]?.id ?? ''));
+    setName("");
+    setJobRole("");
+    setDepartmentId(user?.departmentId || (departments[0]?.id ?? ""));
     setIsDefault(false);
     setTasks([
       {
-        title: 'Initial Welcome & Workspace Setup',
-        description: 'Sign in to workspace apps and complete setup.',
-        category: 'IT Setup',
+        title: "Initial Welcome & Workspace Setup",
+        description: "Sign in to workspace apps and complete setup.",
+        category: "IT Setup",
         orderIndex: 0,
-        assigneeType: 'employee',
+        assigneeType: "employee",
         dueOffsetDays: 1,
       },
     ]);
@@ -84,13 +82,13 @@ export const TemplateBuilder: React.FC = () => {
   const openEditModal = (t: OnboardingTemplate) => {
     setEditingTemplate(t);
     setName(t.name);
-    setJobRole(t.jobRole || '');
-    setDepartmentId(t.departmentId || '');
+    setJobRole(t.jobRole || "");
+    setDepartmentId(t.departmentId || "");
     setIsDefault(t.isDefault);
     setTasks(
       t.tasks && t.tasks.length > 0
         ? [...t.tasks].sort((a, b) => a.orderIndex - b.orderIndex)
-        : []
+        : [],
     );
     setIsModalOpen(true);
   };
@@ -99,11 +97,11 @@ export const TemplateBuilder: React.FC = () => {
     setTasks([
       ...tasks,
       {
-        title: '',
-        description: '',
-        category: 'Role Training',
+        title: "",
+        description: "",
+        category: "Role Training",
         orderIndex: tasks.length,
-        assigneeType: 'employee',
+        assigneeType: "employee",
         dueOffsetDays: 3,
       },
     ]);
@@ -114,8 +112,8 @@ export const TemplateBuilder: React.FC = () => {
     setTasks(updated.map((t, idx) => ({ ...t, orderIndex: idx })));
   };
 
-  const handleMoveTask = (index: number, direction: 'up' | 'down') => {
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+  const handleMoveTask = (index: number, direction: "up" | "down") => {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= tasks.length) return;
 
     const updated = [...tasks];
@@ -126,7 +124,11 @@ export const TemplateBuilder: React.FC = () => {
     setTasks(updated.map((t, idx) => ({ ...t, orderIndex: idx })));
   };
 
-  const handleUpdateTaskField = (index: number, field: keyof TemplateTask, value: string | number) => {
+  const handleUpdateTaskField = (
+    index: number,
+    field: keyof TemplateTask,
+    value: string | number,
+  ) => {
     const updated = [...tasks];
     updated[index] = { ...updated[index], [field]: value };
     setTasks(updated);
@@ -135,7 +137,7 @@ export const TemplateBuilder: React.FC = () => {
   const handleSaveTemplate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      setError('Template name is required');
+      setError("Template name is required");
       return;
     }
 
@@ -166,41 +168,50 @@ export const TemplateBuilder: React.FC = () => {
       setIsModalOpen(false);
       fetchTemplates();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to save template');
+      setError(err instanceof Error ? err.message : "Failed to save template");
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDeleteTemplate = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this template?')) return;
+    if (!confirm("Are you sure you want to delete this template?")) return;
     try {
       await templateApi.delete(id);
       fetchTemplates();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to delete template');
+      setError(
+        err instanceof Error ? err.message : "Failed to delete template",
+      );
     }
   };
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#23252a]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/[0.06]">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#f7f8f8] m-0">
-            {user?.role === 'manager' ? 'Department Templates' : 'Workflow Templates'}
+          <h1 className="text-2xl font-semibold tracking-tight text-[#f7f8f8] m-0">
+            {user?.role === "manager"
+              ? "Department Templates"
+              : "Workflow Templates"}
           </h1>
-          <p className="text-xs text-[#8a8f98] mt-1">
-            Build and manage role-specific onboarding templates. Template tasks are snapshotted on employee assignment.
+          <p className="text-sm text-[#8a8f98] mt-1">
+            Build and manage role-specific onboarding templates. Template tasks
+            are snapshotted on employee assignment.
           </p>
         </div>
-        <Button variant="primary" icon={<Plus size={16} />} onClick={openCreateModal}>
+        <Button
+          variant="primary"
+          icon={<Plus size={16} />}
+          onClick={openCreateModal}
+        >
           New Template
         </Button>
       </div>
 
       {error && (
-        <div className="p-3 rounded-lg bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.25)] text-xs text-[#f87171]">
+        <div className="p-3 rounded-md bg-red-500/10 border border-red-500/20 text-xs text-red-400">
           {error}
         </div>
       )}
@@ -209,70 +220,85 @@ export const TemplateBuilder: React.FC = () => {
       {isLoading ? (
         <div className="flex items-center justify-center h-48 text-[#8a8f98]">
           <div className="flex flex-col items-center gap-3">
-            <div className="w-6 h-6 border-2 border-[#5e6ad2] border-t-transparent rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
             <span className="text-xs">Loading templates...</span>
           </div>
         </div>
       ) : templates.length === 0 ? (
-        <Card className="text-center py-12">
-          <GitFork size={36} className="text-[#62666d] mx-auto mb-3" />
-          <h3 className="text-base font-semibold text-[#f7f8f8] mb-1">No Templates Found</h3>
+        <div className="text-center py-12 bg-[#0f1013] border border-white/[0.06] rounded-xl p-8">
+          <GitFork size={32} className="text-[#5a5e6b] mx-auto mb-3" />
+          <h3 className="text-sm font-semibold text-[#f7f8f8] mb-1">
+            No Templates Found
+          </h3>
           <p className="text-xs text-[#8a8f98] max-w-sm mx-auto mb-4">
-            Create your first onboarding workflow template to auto-populate tasks when new employees join.
+            Create your first onboarding workflow template to auto-populate
+            tasks when new employees join.
           </p>
-          <Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={openCreateModal}>
+          <Button
+            variant="primary"
+            size="sm"
+            icon={<Plus size={14} />}
+            onClick={openCreateModal}
+          >
             Create Template
           </Button>
-        </Card>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {templates.map((t) => (
-            <Card key={t.id} className="flex flex-col justify-between p-5">
+            <div
+              key={t.id}
+              className="bg-[#0f1013] border border-white/[0.06] hover:border-white/[0.12] rounded-xl p-5 flex flex-col justify-between transition-colors shadow-2xs"
+            >
               <div>
                 <div className="flex items-start justify-between gap-3 mb-2">
                   <div>
-                    <h3 className="text-base font-semibold text-[#f7f8f8] tracking-tight m-0">
+                    <h3 className="text-sm sm:text-base font-semibold text-[#f7f8f8] tracking-tight m-0">
                       {t.name}
                     </h3>
-                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                      {t.department && <Badge variant="purple">{t.department.name}</Badge>}
-                      {t.jobRole && <Badge variant="blue">{t.jobRole}</Badge>}
-                      {t.isDefault && <Badge variant="green">Default Template</Badge>}
+                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                      {t.department && (
+                        <Badge variant="purple">{t.department.name}</Badge>
+                      )}
+                      {t.jobRole && <Badge variant="white">{t.jobRole}</Badge>}
+                      {t.isDefault && (
+                        <Badge variant="green">Default Template</Badge>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <Button
                       variant="ghost"
                       size="sm"
-                      icon={<PencilSimple size={15} />}
+                      icon={<PencilSimple size={14} />}
                       onClick={() => openEditModal(t)}
                       title="Edit template"
                     />
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="hover:text-[#f87171]"
-                      icon={<Trash size={15} />}
+                      className="hover:text-red-400"
+                      icon={<Trash size={14} />}
                       onClick={() => handleDeleteTemplate(t.id)}
                       title="Delete template"
                     />
                   </div>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-[#23252a]">
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-[#62666d] block mb-2">
+                <div className="mt-4 pt-3 border-t border-white/[0.06]">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-[#5a5e6b] block mb-2">
                     Tasks ({t.tasks?.length || 0})
                   </span>
                   <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto pr-1">
                     {(t.tasks || []).map((task, idx) => (
                       <div
                         key={task.id || idx}
-                        className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-md bg-[#141516] border border-[#23252a]"
+                        className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-md bg-[#14161a] border border-white/[0.06]"
                       >
                         <span className="truncate text-[#f7f8f8] max-w-[220px]">
                           {task.orderIndex + 1}. {task.title}
                         </span>
-                        <span className="text-[11px] text-[#8a8f98] shrink-0">
+                        <span className="text-[11px] font-mono text-[#8a8f98] shrink-0">
                           +{task.dueOffsetDays}d ({task.assigneeType})
                         </span>
                       </div>
@@ -280,7 +306,7 @@ export const TemplateBuilder: React.FC = () => {
                   </div>
                 </div>
               </div>
-            </Card>
+            </div>
           ))}
         </div>
       )}
@@ -289,7 +315,7 @@ export const TemplateBuilder: React.FC = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingTemplate ? 'Edit Template' : 'Create Onboarding Template'}
+        title={editingTemplate ? "Edit Template" : "Create Onboarding Template"}
         maxWidth="lg"
       >
         <form onSubmit={handleSaveTemplate} className="space-y-4">
@@ -312,13 +338,13 @@ export const TemplateBuilder: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-            {user?.role === 'hr_admin' && (
+            {user?.role === "hr_admin" && (
               <Select
                 label="Department"
                 value={departmentId}
                 onChange={(e) => setDepartmentId(e.target.value)}
                 options={[
-                  { value: '', label: 'None (Company-Wide)' },
+                  { value: "", label: "None (Company-Wide)" },
                   ...departments.map((d) => ({ value: d.id, label: d.name })),
                 ]}
               />
@@ -330,16 +356,19 @@ export const TemplateBuilder: React.FC = () => {
                 id="isDefault"
                 checked={isDefault}
                 onChange={(e) => setIsDefault(e.target.checked)}
-                className="rounded border-[#34343a] bg-[#141516] text-[#5e6ad2] cursor-pointer"
+                className="rounded border-white/[0.2] bg-white/[0.05] text-white focus:ring-0 cursor-pointer"
               />
-              <label htmlFor="isDefault" className="text-xs text-[#f7f8f8] cursor-pointer">
+              <label
+                htmlFor="isDefault"
+                className="text-xs text-[#f7f8f8] cursor-pointer"
+              >
                 Department Fallback Default Template
               </label>
             </div>
           </div>
 
           {/* Tasks Builder */}
-          <div className="mt-6 pt-4 border-t border-[#23252a]">
+          <div className="mt-5 pt-4 border-t border-white/[0.06]">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-semibold uppercase tracking-wider text-[#8a8f98]">
                 Template Tasks Checklist ({tasks.length})
@@ -348,38 +377,38 @@ export const TemplateBuilder: React.FC = () => {
                 type="button"
                 variant="utility"
                 size="sm"
-                icon={<Plus size={14} />}
+                icon={<Plus size={13} />}
                 onClick={handleAddTask}
               >
                 Add Task
               </Button>
             </div>
 
-            <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
               {tasks.map((task, index) => (
                 <div
                   key={index}
-                  className="p-3 bg-[#141516] border border-[#23252a] rounded-xl flex items-start gap-2.5"
+                  className="p-2.5 bg-[#0a0b0e] border border-white/[0.06] rounded-lg flex items-start gap-2.5"
                 >
                   {/* Reorder Buttons */}
                   <div className="flex flex-col gap-1 mt-1 shrink-0">
                     <button
                       type="button"
                       disabled={index === 0}
-                      onClick={() => handleMoveTask(index, 'up')}
-                      className="p-1 text-[#62666d] hover:text-[#f7f8f8] disabled:opacity-30 cursor-pointer"
+                      onClick={() => handleMoveTask(index, "up")}
+                      className="p-1 text-[#5a5e6b] hover:text-[#f7f8f8] disabled:opacity-20 cursor-pointer"
                       title="Move up"
                     >
-                      <ArrowUp size={13} />
+                      <ArrowUp size={12} />
                     </button>
                     <button
                       type="button"
                       disabled={index === tasks.length - 1}
-                      onClick={() => handleMoveTask(index, 'down')}
-                      className="p-1 text-[#62666d] hover:text-[#f7f8f8] disabled:opacity-30 cursor-pointer"
+                      onClick={() => handleMoveTask(index, "down")}
+                      className="p-1 text-[#5a5e6b] hover:text-[#f7f8f8] disabled:opacity-20 cursor-pointer"
                       title="Move down"
                     >
-                      <ArrowDown size={13} />
+                      <ArrowDown size={12} />
                     </button>
                   </div>
 
@@ -389,9 +418,11 @@ export const TemplateBuilder: React.FC = () => {
                       <input
                         placeholder="Task title"
                         value={task.title}
-                        onChange={(e) => handleUpdateTaskField(index, 'title', e.target.value)}
+                        onChange={(e) =>
+                          handleUpdateTaskField(index, "title", e.target.value)
+                        }
                         required
-                        className="w-full bg-[#0f1011] border border-[#23252a] focus:border-[#5e6ad2] text-xs text-[#f7f8f8] rounded-md px-2.5 py-1.5"
+                        className="w-full bg-[#14161a] border border-white/[0.08] focus:border-white/30 text-xs text-[#f7f8f8] rounded-md px-2.5 py-1.5 focus:outline-none"
                       />
                     </div>
 
@@ -399,20 +430,30 @@ export const TemplateBuilder: React.FC = () => {
                       <input
                         placeholder="Category (e.g. IT Setup)"
                         value={task.category}
-                        onChange={(e) => handleUpdateTaskField(index, 'category', e.target.value)}
+                        onChange={(e) =>
+                          handleUpdateTaskField(
+                            index,
+                            "category",
+                            e.target.value,
+                          )
+                        }
                         required
-                        className="w-full bg-[#0f1011] border border-[#23252a] focus:border-[#5e6ad2] text-xs text-[#f7f8f8] rounded-md px-2.5 py-1.5"
+                        className="w-full bg-[#14161a] border border-white/[0.08] focus:border-white/30 text-xs text-[#f7f8f8] rounded-md px-2.5 py-1.5 focus:outline-none"
                       />
                     </div>
 
                     <div className="sm:col-span-2">
                       <input
                         placeholder="Description (optional)"
-                        value={task.description || ''}
+                        value={task.description || ""}
                         onChange={(e) =>
-                          handleUpdateTaskField(index, 'description', e.target.value)
+                          handleUpdateTaskField(
+                            index,
+                            "description",
+                            e.target.value,
+                          )
                         }
-                        className="w-full bg-[#0f1011] border border-[#23252a] focus:border-[#5e6ad2] text-xs text-[#f7f8f8] rounded-md px-2.5 py-1.5"
+                        className="w-full bg-[#14161a] border border-white/[0.08] focus:border-white/30 text-xs text-[#f7f8f8] rounded-md px-2.5 py-1.5 focus:outline-none"
                       />
                     </div>
 
@@ -422,11 +463,11 @@ export const TemplateBuilder: React.FC = () => {
                         onChange={(e) =>
                           handleUpdateTaskField(
                             index,
-                            'assigneeType',
-                            e.target.value as 'employee' | 'manager' | 'mentor'
+                            "assigneeType",
+                            e.target.value as "employee" | "manager" | "mentor",
                           )
                         }
-                        className="bg-[#0f1011] border border-[#23252a] text-xs text-[#f7f8f8] rounded-md px-2 py-1.5 flex-1"
+                        className="bg-[#14161a] border border-white/[0.08] text-xs text-[#f7f8f8] rounded-md px-2 py-1.5 flex-1 focus:outline-none cursor-pointer"
                       >
                         <option value="employee">Employee</option>
                         <option value="manager">Manager</option>
@@ -434,18 +475,22 @@ export const TemplateBuilder: React.FC = () => {
                       </select>
 
                       <div className="flex items-center gap-1 shrink-0">
-                        <span className="text-[11px] text-[#62666d]">+</span>
+                        <span className="text-[11px] text-[#5a5e6b]">+</span>
                         <input
                           type="number"
                           min="0"
                           title="Due offset in days"
                           value={task.dueOffsetDays}
                           onChange={(e) =>
-                            handleUpdateTaskField(index, 'dueOffsetDays', Number(e.target.value))
+                            handleUpdateTaskField(
+                              index,
+                              "dueOffsetDays",
+                              Number(e.target.value),
+                            )
                           }
-                          className="w-12 bg-[#0f1011] border border-[#23252a] text-xs text-[#f7f8f8] rounded-md px-1.5 py-1.5 text-center"
+                          className="w-12 bg-[#14161a] border border-white/[0.08] text-xs text-[#f7f8f8] rounded-md px-1.5 py-1.5 text-center font-mono focus:outline-none"
                         />
-                        <span className="text-[11px] text-[#62666d]">d</span>
+                        <span className="text-[11px] text-[#5a5e6b]">d</span>
                       </div>
                     </div>
                   </div>
@@ -453,17 +498,17 @@ export const TemplateBuilder: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => handleRemoveTask(index)}
-                    className="text-[#62666d] hover:text-[#f87171] p-1.5 mt-1 cursor-pointer"
+                    className="text-[#5a5e6b] hover:text-red-400 p-1.5 mt-1 cursor-pointer transition-colors"
                     title="Remove task"
                   >
-                    <Trash size={15} />
+                    <Trash size={14} />
                   </button>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-4 border-t border-[#23252a]">
+          <div className="flex items-center justify-end gap-2 pt-4 border-t border-white/[0.06]">
             <Button
               type="button"
               variant="ghost"
@@ -472,7 +517,12 @@ export const TemplateBuilder: React.FC = () => {
             >
               Cancel
             </Button>
-            <Button type="submit" variant="primary" size="md" isLoading={isSaving}>
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              isLoading={isSaving}
+            >
               Save Template
             </Button>
           </div>

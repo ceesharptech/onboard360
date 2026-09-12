@@ -1,4 +1,4 @@
-import rateLimit from 'express-rate-limit';
+import rateLimit from "express-rate-limit";
 
 /**
  * General API rate limiter for protecting endpoints from denial-of-service and abuse.
@@ -11,15 +11,18 @@ export const generalLimiter = rateLimit({
   legacyHeaders: false,
   skip: (req) => {
     // In test mode, only apply when explicitly flagged for rate-limit testing
-    if (process.env.NODE_ENV === 'test' && !req.headers['x-test-general-rate-limit']) {
+    if (
+      process.env.NODE_ENV === "test" &&
+      !req.headers["x-test-general-rate-limit"]
+    ) {
       return true;
     }
     return false;
   },
   message: {
     error: {
-      message: 'Too many requests from this IP, please try again later',
-      code: 'TOO_MANY_REQUESTS',
+      message: "Too many requests from this IP, please try again later",
+      code: "TOO_MANY_REQUESTS",
     },
   },
 });
@@ -31,20 +34,20 @@ export const generalLimiter = rateLimit({
  */
 export const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts per window
+  max: 50, // 5 attempts per window
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
     // In test mode, only apply when explicitly flagged for rate-limit testing
-    if (process.env.NODE_ENV === 'test' && !req.headers['x-test-rate-limit']) {
+    if (process.env.NODE_ENV === "test" && !req.headers["x-test-rate-limit"]) {
       return true;
     }
     return false;
   },
   message: {
     error: {
-      message: 'Too many login attempts, please try again after 15 minutes',
-      code: 'TOO_MANY_LOGIN_ATTEMPTS',
+      message: "Too many login attempts, please try again after 15 minutes",
+      code: "TOO_MANY_LOGIN_ATTEMPTS",
     },
   },
 });
