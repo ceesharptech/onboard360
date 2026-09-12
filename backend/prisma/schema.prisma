@@ -7,7 +7,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model Company {
@@ -43,6 +42,7 @@ model User {
   mentors           Mentor[]
   createdTemplates  OnboardingTemplate[] @relation("TemplateCreator")
   uploadedDocuments Document[]           @relation("DocumentUploader")
+  refreshTokens     RefreshToken[]
 
   @@map("users")
 }
@@ -191,3 +191,19 @@ model DocumentChunk {
 
   @@map("document_chunks")
 }
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  revoked   Boolean  @default(false)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
