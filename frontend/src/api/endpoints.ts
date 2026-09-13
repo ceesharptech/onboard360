@@ -258,3 +258,17 @@ export const documentApi = {
     ),
 };
 
+export interface AssistantChatResponse {
+  answer: string;
+  sources: string[];
+  isFallback: boolean;
+}
+
+export const assistantApi = {
+  chat: (question: string) =>
+    apiRequest<AssistantChatResponse>('/assistant/chat', {
+      method: 'POST',
+      body: JSON.stringify({ question }),
+    }),
+};
+

@@ -4,6 +4,13 @@ import { authenticate, requireRole } from '../middleware/auth';
 
 const router = Router();
 
+// Protected: List users in company
+router.get(
+  '/',
+  authenticate,
+  (req, res, next) => userController.listUsers(req, res, next)
+);
+
 // Protected: Only HR Admins can create new user accounts
 router.post(
   '/',

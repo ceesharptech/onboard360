@@ -103,12 +103,19 @@ Provide an answer strictly grounded in the document context above. Cite the sour
           { role: 'user', content: userMessageContent },
         ],
         temperature: 0.1, // Low temperature for high factual precision
-        max_tokens: 1024,
+        max_completion_tokens: 1024,
       });
 
-      const rawAnswer = completion.choices[0]?.message?.content?.trim();
+      const choice = completion.choices[0];
+      const message = choice?.message;
+      // Extract content, with fallback to reasoning if a reasoning model returns content in reasoning
+      const rawAnswer = (message?.content?.trim() || (message as any)?.reasoning?.trim()) ?? '';
+
       if (!rawAnswer) {
-        logger.warn('Groq returned an empty answer');
+        logger.warn(
+          { model, finishReason: choice?.finish_reason },
+          'Groq returned an empty response'
+        );
         return {
           answer: FALLBACK_ERROR_MESSAGE,
           sources: [],
@@ -116,9 +123,20 @@ Provide an answer strictly grounded in the document context above. Cite the sour
         };
       }
 
+      logger.info(
+        {
+          model,
+          promptTokens: completion.usage?.prompt_tokens,
+          completionTokens: completion.usage?.completion_tokens,
+          finishReason: choice?.finish_reason,
+        },
+        'Groq generation completed successfully'
+      );
+
       // If the LLM itself recognized insufficient info and replied with contact HR
-      const isFallbackResponse = rawAnswer.includes("couldn't find this in company documents") ||
-        rawAnswer.includes("contact HR");
+      const isFallbackResponse =
+        rawAnswer.includes("couldn't find this in company documents") ||
+        rawAnswer.includes('contact HR');
 
       return {
         answer: rawAnswer,
@@ -126,7 +144,11 @@ Provide an answer strictly grounded in the document context above. Cite the sour
         isFallback: isFallbackResponse,
       };
     } catch (error: unknown) {
-      logger.error({ error, question }, 'Groq API invocation failed');
+      const errDetails =
+        error instanceof Error
+          ? { name: error.name, message: error.message, stack: error.stack }
+          : error;
+      logger.error({ error: errDetails, model, question }, 'Groq API invocation failed');
       return {
         answer: FALLBACK_ERROR_MESSAGE,
         sources: [],

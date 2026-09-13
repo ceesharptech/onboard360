@@ -47,6 +47,7 @@ export async function createTestTenantFixture(suffix: string): Promise<TestTenan
       email: `hr.${suffix}@test.com`,
       passwordHash,
       role: 'hr_admin',
+      mustChangePassword: false,
     },
   });
 
@@ -57,6 +58,7 @@ export async function createTestTenantFixture(suffix: string): Promise<TestTenan
       email: `mgr.a.${suffix}@test.com`,
       passwordHash,
       role: 'manager',
+      mustChangePassword: false,
     },
   });
 
@@ -67,6 +69,7 @@ export async function createTestTenantFixture(suffix: string): Promise<TestTenan
       email: `mgr.b.${suffix}@test.com`,
       passwordHash,
       role: 'manager',
+      mustChangePassword: false,
     },
   });
 
@@ -77,6 +80,7 @@ export async function createTestTenantFixture(suffix: string): Promise<TestTenan
       email: `emp1.${suffix}@test.com`,
       passwordHash,
       role: 'employee',
+      mustChangePassword: false,
     },
   });
 
@@ -87,6 +91,7 @@ export async function createTestTenantFixture(suffix: string): Promise<TestTenan
       email: `emp2.${suffix}@test.com`,
       passwordHash,
       role: 'employee',
+      mustChangePassword: false,
     },
   });
 

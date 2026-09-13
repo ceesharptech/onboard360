@@ -51,7 +51,50 @@ export class DepartmentService {
       orderBy: [{ currentMenteeCount: 'asc' }, { id: 'asc' }],
     });
 
-    return mentors;
+    const mentorIds = mentors.map((m) => m.id);
+    const mentees = await prisma.employee.findMany({
+      where: {
+        companyId,
+        mentorId: { in: mentorIds },
+      },
+      select: {
+        id: true,
+        name: true,
+        jobRole: true,
+        startDate: true,
+        departmentId: true,
+        department: { select: { id: true, name: true } },
+        mentorId: true,
+        tasks: { select: { status: true, dueDate: true } },
+      },
+    });
+
+    const menteesByMentorId = new Map<string, any[]>();
+    for (const mentee of mentees) {
+      if (!mentee.mentorId) continue;
+      const list = menteesByMentorId.get(mentee.mentorId) || [];
+      const totalTasks = mentee.tasks.length;
+      const completedTasks = mentee.tasks.filter((t) => t.status === 'completed').length;
+      const percentComplete = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+      list.push({
+        id: mentee.id,
+        name: mentee.name,
+        jobRole: mentee.jobRole,
+        startDate: mentee.startDate,
+        department: mentee.department,
+        progress: {
+          totalTasks,
+          completedTasks,
+          percentComplete,
+        },
+      });
+      menteesByMentorId.set(mentee.mentorId, list);
+    }
+
+    return mentors.map((m) => ({
+      ...m,
+      mentees: menteesByMentorId.get(m.id) || [],
+    }));
   }
 
   /**

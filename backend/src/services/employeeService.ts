@@ -3,6 +3,7 @@ import { NotFoundError, BadRequestError } from '../utils/errors';
 import { CreateEmployeeInput, UpdateEmployeeInput, UpdateEmployeeTaskInput } from '../utils/validation';
 import mentorService from './mentorService';
 import logger from '../utils/logger';
+import { hashPassword } from '../utils/password';
 
 export interface ProgressSummary {
   totalTasks: number;
@@ -33,13 +34,59 @@ export class EmployeeService {
   }
 
   /**
-   * Create an employee with auto-matched onboarding template tasks snapshot and mentor assignment.
+   * Create an employee or HR Admin with auto-matched onboarding template tasks snapshot and mentor assignment.
    *
    * Snapshot-on-assignment is a strict invariant:
    * When an employee is created, matched template tasks are cloned into employee_tasks.
    * Editing or deleting the template later will never alter existing employee_tasks.
    */
   async createEmployee(data: CreateEmployeeInput, companyId: string) {
+    // Handle hr_admin creation
+    if (data.role === 'hr_admin') {
+      const existingUser = await prisma.user.findUnique({
+        where: { email: data.email },
+      });
+      if (existingUser) {
+        throw new BadRequestError('User with this email already exists', 'EMAIL_ALREADY_EXISTS');
+      }
+
+      const passwordHash = await hashPassword(data.initialPassword || 'TempPass123!');
+      const newUser = await prisma.user.create({
+        data: {
+          email: data.email,
+          passwordHash,
+          role: 'hr_admin',
+          companyId,
+          departmentId: null,
+          mustChangePassword: true,
+        },
+      });
+
+      logger.info({ userId: newUser.id, companyId }, 'Created HR Admin user');
+
+      return {
+        id: newUser.id,
+        userId: newUser.id,
+        name: data.name,
+        email: data.email,
+        role: 'hr_admin',
+        departmentId: null,
+        department: null,
+        jobRole: 'HR Administrator',
+        startDate: null,
+        employmentType: null,
+        tasks: [],
+        progress: { totalTasks: 0, completedTasks: 0, percentComplete: 0, overdueTasks: 0 },
+        user: { id: newUser.id, email: newUser.email, role: newUser.role },
+        mentor: null,
+        mustChangePassword: true,
+      };
+    }
+
+    if (!data.departmentId) {
+      throw new BadRequestError('Department is required for managers and employees', 'BAD_REQUEST');
+    }
+
     const department = await prisma.department.findFirst({
       where: { id: data.departmentId, companyId },
     });
@@ -54,7 +101,7 @@ export class EmployeeService {
       where: {
         companyId,
         departmentId: data.departmentId,
-        jobRole: { equals: data.jobRole, mode: 'insensitive' },
+        jobRole: data.jobRole ? { equals: data.jobRole, mode: 'insensitive' } : undefined,
       },
       include: {
         tasks: { orderBy: { orderIndex: 'asc' } },
@@ -94,27 +141,44 @@ export class EmployeeService {
       assignedMentorId = await mentorService.assignLeastLoadedMentor(data.departmentId, companyId);
     }
 
-    // 3. Check if user already exists for this email
-    const existingUser = await prisma.user.findUnique({
+    // 3. User account creation / linking
+    let user = await prisma.user.findUnique({
       where: { email: data.email },
     });
-    const userId = existingUser && existingUser.companyId === companyId ? existingUser.id : null;
 
-    const startDate = new Date(data.startDate);
+    if (user && user.companyId !== companyId) {
+      throw new BadRequestError('User with this email belongs to another company', 'EMAIL_ALREADY_EXISTS');
+    }
+
+    if (!user) {
+      const passwordHash = await hashPassword(data.initialPassword || 'TempPass123!');
+      user = await prisma.user.create({
+        data: {
+          email: data.email,
+          passwordHash,
+          role: data.role || 'employee',
+          companyId,
+          departmentId: data.departmentId,
+          mustChangePassword: true,
+        },
+      });
+    }
+
+    const startDate = data.startDate ? new Date(data.startDate) : new Date();
 
     // 4. Create Employee and snapshot tasks in an atomic transaction
     const employee = await prisma.$transaction(async (tx) => {
       const newEmployee = await tx.employee.create({
         data: {
           companyId,
-          userId,
+          userId: user?.id ?? null,
           name: data.name,
           email: data.email,
-          departmentId: data.departmentId,
-          jobRole: data.jobRole,
+          departmentId: data.departmentId!,
+          jobRole: data.jobRole || 'Team Member',
           startDate,
           managerId: data.managerId ?? null,
-          employmentType: data.employmentType,
+          employmentType: data.employmentType || 'full_time',
           mentorId: assignedMentorId,
         },
       });
@@ -130,6 +194,7 @@ export class EmployeeService {
             category: task.category,
             orderIndex: task.orderIndex,
             assigneeType: task.assigneeType,
+            taskUrl: task.taskUrl ?? null,
             dueDate,
             status: 'pending',
             sourceTemplateTaskId: task.id, // For traceability only, no live FK
@@ -256,14 +321,14 @@ export class EmployeeService {
       throw new NotFoundError('Employee not found', 'NOT_FOUND');
     }
 
-    let mentor: { id: string; email: string } | null = null;
+    let mentor: { id: string; email: string; userId?: string } | null = null;
     if (employee.mentorId) {
       const mentorRecord = await prisma.mentor.findFirst({
         where: { id: employee.mentorId },
         include: { user: { select: { id: true, email: true } } },
       });
       if (mentorRecord) {
-        mentor = { id: mentorRecord.id, email: mentorRecord.user.email };
+        mentor = { id: mentorRecord.id, email: mentorRecord.user.email, userId: mentorRecord.userId };
       }
     }
 
@@ -398,6 +463,97 @@ export class EmployeeService {
     }
 
     return this.calculateProgress(employee.tasks);
+  }
+
+  /**
+   * Get tasks assigned to 'manager' for employees in the manager's department.
+   */
+  async getMyAssignedManagerTasks(managerUserId: string, companyId: string) {
+    const user = await prisma.user.findFirst({
+      where: { id: managerUserId, companyId },
+    });
+
+    if (!user || !user.departmentId) {
+      return [];
+    }
+
+    const tasks = await prisma.employeeTask.findMany({
+      where: {
+        assigneeType: 'manager',
+        employee: {
+          companyId,
+          departmentId: user.departmentId,
+        },
+      },
+      include: {
+        employee: {
+          select: {
+            id: true,
+            name: true,
+            jobRole: true,
+            email: true,
+            department: { select: { id: true, name: true } },
+          },
+        },
+      },
+      orderBy: [{ dueDate: 'asc' }, { orderIndex: 'asc' }],
+    });
+
+    return tasks;
+  }
+
+  /**
+   * Get active mentee data for an employee or manager who is an active mentor.
+   */
+  async getMyMenteeData(userId: string, companyId: string) {
+    const activeMentors = await prisma.mentor.findMany({
+      where: {
+        userId,
+        companyId,
+        isActive: true,
+      },
+    });
+
+    if (activeMentors.length === 0) {
+      return {
+        isMentor: false,
+        mentees: [],
+      };
+    }
+
+    const mentorIds = activeMentors.map((m) => m.id);
+    const mentees = await prisma.employee.findMany({
+      where: {
+        companyId,
+        mentorId: { in: mentorIds },
+      },
+      include: {
+        department: { select: { id: true, name: true } },
+        tasks: { orderBy: { orderIndex: 'asc' } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const enrichedMentees = mentees.map((emp) => {
+      const progress = this.calculateProgress(emp.tasks);
+      const mentorTasks = emp.tasks.filter((t) => t.assigneeType === 'mentor');
+
+      return {
+        id: emp.id,
+        name: emp.name,
+        email: emp.email,
+        jobRole: emp.jobRole,
+        startDate: emp.startDate,
+        department: emp.department,
+        progress,
+        mentorTasks,
+      };
+    });
+
+    return {
+      isMentor: true,
+      mentees: enrichedMentees,
+    };
   }
 }
 

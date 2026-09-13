@@ -34,7 +34,7 @@ export const generalLimiter = rateLimit({
  */
 export const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50, // 5 attempts per window
+  max: 5, // 5 attempts per window
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {

@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import prisma from '../utils/prisma';
-import { comparePassword } from '../utils/password';
+import { comparePassword, hashPassword } from '../utils/password';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/token';
 import { UnauthorizedError } from '../utils/errors';
 import { logger } from '../utils/logger';
@@ -9,6 +9,7 @@ import { logger } from '../utils/logger';
 const DUMMY_HASH = '$2b$12$e876VzW6F8X4z5sJ4E5QeOGJ8qY0H1uF8iW5F1e876VzW6F8X4z5s';
 
 export interface LoginResult {
+  mustChangePassword?: false;
   accessToken: string;
   refreshToken: string;
   user: {
@@ -20,6 +21,13 @@ export interface LoginResult {
   };
 }
 
+export interface MustChangePasswordResult {
+  mustChangePassword: true;
+  email: string;
+}
+
+export type LoginOutput = LoginResult | MustChangePasswordResult;
+
 export interface RefreshResult {
   accessToken: string;
   refreshToken: string;
@@ -30,7 +38,7 @@ export class AuthService {
    * Authenticates user with email and password.
    * Prevents timing attacks and account enumeration per security.md Section 1.
    */
-  async login(email: string, password: string): Promise<LoginResult> {
+  async login(email: string, password: string): Promise<LoginOutput> {
     const user = await prisma.user.findUnique({
       where: { email },
     });
@@ -41,6 +49,14 @@ export class AuthService {
     if (!user || !isPasswordValid) {
       // Generic error per security.md Section 1: never leak if email exists
       throw new UnauthorizedError('Invalid credentials', 'INVALID_CREDENTIALS');
+    }
+
+    if (user.mustChangePassword) {
+      logger.info({ userId: user.id, email: user.email }, 'User must change password before accessing the platform');
+      return {
+        mustChangePassword: true,
+        email: user.email,
+      };
     }
 
     const payload = {
@@ -67,6 +83,68 @@ export class AuthService {
     logger.info({ userId: user.id, role: user.role, companyId: user.companyId }, 'User logged in successfully');
 
     return {
+      mustChangePassword: false,
+      accessToken,
+      refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        companyId: user.companyId,
+        departmentId: user.departmentId,
+      },
+    };
+  }
+
+  /**
+   * Completes initial forced password change for new accounts.
+   */
+  async changePassword(email: string, currentPassword: string, newPassword: string): Promise<LoginResult> {
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    const hashToCompare = user ? user.passwordHash : DUMMY_HASH;
+    const isPasswordValid = await comparePassword(currentPassword, hashToCompare);
+
+    if (!user || !isPasswordValid) {
+      throw new UnauthorizedError('Invalid credentials', 'INVALID_CREDENTIALS');
+    }
+
+    const newPasswordHash = await hashPassword(newPassword);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash: newPasswordHash,
+        mustChangePassword: false,
+      },
+    });
+
+    const payload = {
+      userId: user.id,
+      role: user.role as 'hr_admin' | 'manager' | 'employee',
+      companyId: user.companyId,
+      departmentId: user.departmentId,
+    };
+
+    const accessToken = signAccessToken(payload);
+    const refreshToken = signRefreshToken(payload);
+
+    const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    await prisma.refreshToken.create({
+      data: {
+        token: refreshToken,
+        userId: user.id,
+        expiresAt: sevenDaysFromNow,
+        revoked: false,
+      },
+    });
+
+    logger.info({ userId: user.id, email: user.email }, 'User changed password successfully');
+
+    return {
+      mustChangePassword: false,
       accessToken,
       refreshToken,
       user: {

@@ -38,6 +38,7 @@ export class TemplateService {
               orderIndex: task.orderIndex ?? idx,
               assigneeType: task.assigneeType,
               dueOffsetDays: task.dueOffsetDays,
+              taskUrl: task.taskUrl ?? null,
             })),
           },
         },
@@ -101,27 +102,17 @@ export class TemplateService {
     });
 
     if (!template) {
-      throw new NotFoundError('Template not found', 'NOT_FOUND');
+      throw new NotFoundError('Template not found in company', 'NOT_FOUND');
     }
 
     return template;
   }
 
   /**
-   * Update template and its tasks.
+   * Update template metadata and replace task list.
    */
-  async updateTemplate(
-    id: string,
-    data: UpdateTemplateInput,
-    companyId: string
-  ) {
-    const existing = await prisma.onboardingTemplate.findFirst({
-      where: { id, companyId },
-    });
-
-    if (!existing) {
-      throw new NotFoundError('Template not found', 'NOT_FOUND');
-    }
+  async updateTemplate(id: string, data: UpdateTemplateInput, companyId: string) {
+    await this.getTemplateById(id, companyId);
 
     const updated = await prisma.$transaction(async (tx) => {
       // If tasks array is provided, replace tasks
@@ -142,6 +133,7 @@ export class TemplateService {
               orderIndex: task.orderIndex ?? idx,
               assigneeType: task.assigneeType,
               dueOffsetDays: task.dueOffsetDays,
+              taskUrl: task.taskUrl ?? null,
             })),
           });
         }

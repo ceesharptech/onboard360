@@ -7,6 +7,7 @@ import { ManagerDashboard } from './features/manager/ManagerDashboard';
 import { HrAdminDashboard } from './features/admin/HrAdminDashboard';
 import { TemplateBuilder } from './features/templates/TemplateBuilder';
 import { DocumentManager } from './features/documents/DocumentManager';
+import { QorraChat } from './features/assistant/QorraChat';
 
 const MainApp: React.FC = () => {
   const { user, isAuthenticated, loading } = useAuth();
@@ -39,8 +40,12 @@ const MainApp: React.FC = () => {
 
   return (
     <AppShell currentTab={resolvedTab} onTabChange={setActiveTab}>
+      {/* Global Company AI Tabs (Accessible across roles) */}
+      {resolvedTab === 'qorra' && <QorraChat />}
+      {resolvedTab === 'documents' && <DocumentManager />}
+
       {/* Employee View */}
-      {user.role === 'employee' && <EmployeeDashboard />}
+      {user.role === 'employee' && resolvedTab === 'my-onboarding' && <EmployeeDashboard />}
 
       {/* Manager View */}
       {user.role === 'manager' && (
@@ -56,7 +61,6 @@ const MainApp: React.FC = () => {
       {user.role === 'hr_admin' && (
         <>
           {resolvedTab === 'employees' && <HrAdminDashboard initialTab="employees" />}
-          {resolvedTab === 'documents' && <DocumentManager />}
           {resolvedTab === 'departments' && <HrAdminDashboard initialTab="departments" />}
           {resolvedTab === 'templates' && <TemplateBuilder />}
         </>

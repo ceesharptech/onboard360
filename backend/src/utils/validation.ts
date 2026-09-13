@@ -13,19 +13,37 @@ export const logoutSchema = z.object({
   refreshToken: z.string().min(1, 'Refresh token is required'),
 });
 
-export const createUserSchema = z.object({
+export const passwordComplexity = z
+  .string()
+  .min(8, 'Password must be at least 8 characters long')
+  .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+  .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+  .regex(/[0-9]/, 'Password must contain at least one number');
+
+export const changePasswordSchema = z.object({
   email: z.string().trim().toLowerCase().email('A valid email address is required'),
-  password: z
-    .string()
-    .min(8, 'Password must be at least 8 characters long')
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/[0-9]/, 'Password must contain at least one number'),
-  role: z.enum(['manager', 'employee'], {
-    errorMap: () => ({ message: "Role must be either 'manager' or 'employee'" }),
-  }),
-  departmentId: z.string().min(1, 'departmentId is required for managers and employees'),
+  currentPassword: z.string().min(1, 'Current password is required'),
+  newPassword: passwordComplexity,
 });
+
+export const createUserSchema = z
+  .object({
+    email: z.string().trim().toLowerCase().email('A valid email address is required'),
+    password: passwordComplexity,
+    role: z.enum(['hr_admin', 'manager', 'employee'], {
+      errorMap: () => ({ message: "Role must be 'hr_admin', 'manager', or 'employee'" }),
+    }),
+    departmentId: z.string().optional().nullable(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.role !== 'hr_admin' && (!data.departmentId || data.departmentId.trim() === '')) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'departmentId is required for managers and employees',
+        path: ['departmentId'],
+      });
+    }
+  });
 
 // --- Phase 2 Schemas ---
 
@@ -43,6 +61,12 @@ export const templateTaskSchema = z.object({
     errorMap: () => ({ message: "assigneeType must be 'employee', 'manager', or 'mentor'" }),
   }),
   dueOffsetDays: z.number().int().nonnegative('dueOffsetDays must be non-negative'),
+  taskUrl: z
+    .string()
+    .trim()
+    .min(1, 'Task URL cannot be empty if provided')
+    .optional()
+    .nullable(),
 });
 
 export const createTemplateSchema = z.object({
@@ -65,18 +89,58 @@ export const reorderTemplateTasksSchema = z.object({
   taskIds: z.array(z.string().uuid()).min(1, 'At least one taskId is required'),
 });
 
-export const createEmployeeSchema = z.object({
-  name: z.string().trim().min(1, 'Name is required'),
-  email: z.string().trim().toLowerCase().email('A valid email address is required'),
-  departmentId: z.string().uuid('departmentId must be a valid UUID'),
-  jobRole: z.string().trim().min(1, 'Job role is required'),
-  startDate: z.string().min(1, 'startDate is required'),
-  managerId: z.string().uuid().optional().nullable(),
-  employmentType: z.enum(['full_time', 'part_time', 'contract'], {
-    errorMap: () => ({ message: "employmentType must be 'full_time', 'part_time', or 'contract'" }),
-  }),
-  mentorId: z.string().uuid().optional().nullable(),
-});
+export const createEmployeeSchema = z
+  .object({
+    name: z.string().trim().min(1, 'Name is required'),
+    email: z.string().trim().toLowerCase().email('A valid email address is required'),
+    role: z.enum(['employee', 'manager', 'hr_admin']).default('employee'),
+    initialPassword: passwordComplexity.optional(),
+    departmentId: z.string().uuid('departmentId must be a valid UUID').optional().nullable(),
+    jobRole: z.string().trim().optional().nullable(),
+    startDate: z.string().optional().nullable(),
+    managerId: z.string().uuid().optional().nullable(),
+    employmentType: z
+      .enum(['full_time', 'part_time', 'contract'], {
+        errorMap: () => ({
+          message: "employmentType must be 'full_time', 'part_time', or 'contract'",
+        }),
+      })
+      .optional()
+      .nullable(),
+    mentorId: z.string().uuid().optional().nullable(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.role !== 'hr_admin') {
+      if (!data.departmentId) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Department is required for managers and employees',
+          path: ['departmentId'],
+        });
+      }
+      if (!data.jobRole || data.jobRole.trim() === '') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Job role is required for managers and employees',
+          path: ['jobRole'],
+        });
+      }
+      if (!data.startDate || data.startDate.trim() === '') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Start date is required for managers and employees',
+          path: ['startDate'],
+        });
+      }
+      if (!data.employmentType) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Employment type is required for managers and employees',
+          path: ['employmentType'],
+        });
+      }
+    }
+  });
 
 export const updateEmployeeSchema = z.object({
   name: z.string().trim().min(1).optional(),
@@ -102,6 +166,7 @@ export type LoginInput = z.infer<typeof loginSchema>;
 export type RefreshInput = z.infer<typeof refreshSchema>;
 export type LogoutInput = z.infer<typeof logoutSchema>;
 export type CreateUserInput = z.infer<typeof createUserSchema>;
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 export type AddMentorInput = z.infer<typeof addMentorSchema>;
 export type TemplateTaskInput = z.infer<typeof templateTaskSchema>;
 export type CreateTemplateInput = z.infer<typeof createTemplateSchema>;

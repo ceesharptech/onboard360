@@ -148,7 +148,13 @@ export function scopeToDepartment(targetDepartmentId: string | null | undefined,
  * - employee: can access ONLY their own record. If mismatch, throws 404 NotFound.
  */
 export function scopeToOwnEmployee(
-  targetEmployee: { id: string; userId?: string | null; departmentId: string; companyId: string },
+  targetEmployee: {
+    id: string;
+    userId?: string | null;
+    departmentId: string;
+    companyId: string;
+    mentor?: { id?: string; email?: string; userId?: string } | null;
+  },
   req: Request
 ): void {
   if (!req.user) {
@@ -170,11 +176,15 @@ export function scopeToOwnEmployee(
   }
 
   if (req.user.role === 'employee') {
-    if (targetEmployee.userId !== req.user.userId) {
-      // 404 so employees cannot discover other employees' IDs
-      throw new NotFoundError('Resource not found', 'NOT_FOUND');
+    if (targetEmployee.userId === req.user.userId) {
+      return;
     }
-    return;
+    // Allow mentor access to their assigned mentee's onboarding record
+    if (targetEmployee.mentor && targetEmployee.mentor.userId === req.user.userId) {
+      return;
+    }
+    // 404 so employees cannot discover other employees' IDs
+    throw new NotFoundError('Resource not found', 'NOT_FOUND');
   }
 
   throw new ForbiddenError('Access denied', 'FORBIDDEN');

@@ -23,6 +23,7 @@ describe('Auth Endpoints & Tokens (Phase 1)', () => {
         passwordHash,
         role: 'employee',
         departmentId: fixture.departmentA.id,
+        mustChangePassword: false,
       },
     });
   });

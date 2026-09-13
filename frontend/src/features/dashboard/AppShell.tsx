@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { useAuth } from "../../context/AuthContext";
 import {
   SignOut,
@@ -12,12 +12,6 @@ import {
   LinkSimple,
   Copy,
   GitPullRequest,
-  Minus,
-  ArrowsOut,
-  X,
-  Paperclip,
-  ArrowUp,
-  Circle,
   UsersIcon,
   FileText,
 } from "@phosphor-icons/react";
@@ -34,11 +28,8 @@ export const AppShell: React.FC<AppShellProps> = ({
   children,
 }) => {
   const { user, logout } = useAuth();
-  const [isAssistantOpen, setIsAssistantOpen] = useState(true);
-  const [isAssistantMinimized, setIsAssistantMinimized] = useState(false);
-  const [assistantInput, setAssistantInput] = useState("");
 
-  const navItems = [
+  const workspaceNavItems = [
     ...(user?.role === "employee"
       ? [
           {
@@ -72,11 +63,6 @@ export const AppShell: React.FC<AppShellProps> = ({
             icon: <UsersIcon size={16} />,
           },
           {
-            id: "documents",
-            label: "Knowledge Base",
-            icon: <FileText size={16} />,
-          },
-          {
             id: "templates",
             label: "Workflow Templates",
             icon: <GitFork size={16} />,
@@ -90,10 +76,34 @@ export const AppShell: React.FC<AppShellProps> = ({
       : []),
   ];
 
+  const companyAiNavItems = [
+    ...(user?.role === "hr_admin"
+      ? [
+          {
+            id: "documents",
+            label: "Knowledge Base",
+            icon: <FileText size={16} />,
+          },
+        ]
+      : []),
+    {
+      id: "qorra",
+      label: "Qorra",
+      icon: <Sparkle size={16} weight="fill" className="text-indigo-400" />,
+      badge: "AI",
+    },
+  ];
+
+  const allNavItems = [...workspaceNavItems, ...companyAiNavItems];
+
   // Current tab display title for Linear breadcrumb
   const currentTabName =
-    navItems.find((item) => item.id === currentTab)?.label ||
-    "Onboarding Workspace";
+    currentTab === "qorra"
+      ? "Qorra AI Assistant"
+      : currentTab === "documents"
+      ? "Company Knowledge Base"
+      : allNavItems.find((item) => item.id === currentTab)?.label ||
+        "Onboarding Workspace";
 
   return (
     <div className="flex h-screen w-full bg-[#08080a] text-[#f7f8f8] overflow-hidden font-sans select-none">
@@ -160,7 +170,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             </div>
 
             <nav className="flex flex-col gap-2 mt-0.5">
-              {navItems.map((item) => {
+              {workspaceNavItems.map((item) => {
                 const isActive = currentTab === item.id;
                 return (
                   <button
@@ -169,7 +179,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                     onClick={() => onTabChange(item.id)}
                     className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm font-normal transition-colors cursor-pointer text-left ${
                       isActive
-                        ? "bg-white/[0.03] text-white shadow-2xs font-medium"
+                        ? "bg-white/[0.08] text-white shadow-2xs font-medium"
                         : "text-[#8a8f98] hover:text-[#f7f8f8] hover:bg-white/[0.04]"
                     }`}
                   >
@@ -181,6 +191,44 @@ export const AppShell: React.FC<AppShellProps> = ({
                     <span className="flex-1 truncate">{item.label}</span>
                     {item.badge && (
                       <span className="text-[10px] px-1.5 py-0.2 rounded bg-white/[0.08] text-[#d0d6e0]">
+                        {item.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* Company AI Navigation Section */}
+          <div className="px-2 pt-4">
+            <div className="px-2.5 py-1 text-sm font-medium text-[#5a5e6b] flex items-center justify-between tracking-tight">
+              <span>Company AI</span>
+              <CaretDown size={10} />
+            </div>
+
+            <nav className="flex flex-col gap-1 mt-0.5">
+              {companyAiNavItems.map((item) => {
+                const isActive = currentTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => onTabChange(item.id)}
+                    className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm font-normal transition-colors cursor-pointer text-left ${
+                      isActive
+                        ? "bg-white/[0.08] text-white shadow-2xs font-medium"
+                        : "text-[#8a8f98] hover:text-[#f7f8f8] hover:bg-white/[0.04]"
+                    }`}
+                  >
+                    <span
+                      className={isActive ? "text-white" : "text-[#8a8f98]"}
+                    >
+                      {item.icon}
+                    </span>
+                    <span className="flex-1 truncate">{item.label}</span>
+                    {item.badge && (
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                         {item.badge}
                       </span>
                     )}
@@ -297,142 +345,12 @@ export const AppShell: React.FC<AppShellProps> = ({
             >
               <GitPullRequest size={14} />
             </button>
-            <div className="h-3 w-px bg-white/[0.08] mx-1"></div>
-            <button
-              type="button"
-              onClick={() => setIsAssistantOpen(!isAssistantOpen)}
-              className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-sm font-medium transition-colors cursor-pointer ${
-                isAssistantOpen
-                  ? "bg-white/[0.1] text-white"
-                  : "hover:bg-white/[0.06] text-[#8a8f98]"
-              }`}
-            >
-              <div className="text-indigo-400">
-                <Sparkle size={14} weight="fill" />
-              </div>
-              <span className="hidden md:inline">Assistant</span>
-            </button>
           </div>
         </header>
 
         {/* Content Viewport */}
         <main className="flex-1 overflow-y-auto p-5 sm:p-7 md:p-8 text-left relative">
           {children}
-
-          {/* Floating Linear Opus-style Assistant Panel (Matching Screenshot) */}
-          {isAssistantOpen && (
-            <aside
-              className={`fixed bottom-4 right-4 z-40 w-80 sm:w-96 rounded-xl border border-white/[0.1] bg-[#0e0f14]/95 backdrop-blur-xl shadow-2xl transition-all duration-200 overflow-hidden flex flex-col ${
-                isAssistantMinimized ? "h-10" : "max-h-[440px]"
-              }`}
-            >
-              {/* Header */}
-              <div className="h-10 px-3.5 border-b border-white/[0.08] flex items-center justify-between bg-[#111319]/80 select-none">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-white">
-                    Qorra
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1 text-[#8a8f98]">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setIsAssistantMinimized(!isAssistantMinimized)
-                    }
-                    className="p-1 hover:text-white rounded transition-colors cursor-pointer"
-                    title={isAssistantMinimized ? "Expand" : "Minimize"}
-                  >
-                    <Minus size={13} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setIsAssistantMinimized(!isAssistantMinimized)
-                    }
-                    className="p-1 hover:text-white rounded transition-colors cursor-pointer"
-                    title="Toggle size"
-                  >
-                    <ArrowsOut size={12} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsAssistantOpen(false)}
-                    className="p-1 hover:text-white rounded transition-colors cursor-pointer"
-                    title="Close assistant"
-                  >
-                    <X size={13} />
-                  </button>
-                </div>
-              </div>
-
-              {!isAssistantMinimized && (
-                <>
-                  {/* Context & Updates Feed (Matching Linear reference) */}
-                  <div className="p-3.5 space-y-3 overflow-y-auto text-xs text-[#d0d6e0] max-h-64 select-text">
-                    <div className="p-2.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-xs leading-relaxed text-[#f7f8f8]">
-                      Onboarding snapshot active for your role. 4 checklist
-                      items ready for review.
-                    </div>
-
-                    <div className="text-[11px] text-[#8a8f98] flex items-center gap-1.5">
-                      <Circle
-                        size={10}
-                        className="text-amber-400"
-                        weight="fill"
-                      />
-                      <span>ONB-104 synced with department template</span>
-                    </div>
-
-                    <div className="p-2 rounded-md bg-[#12141a] border border-white/[0.06] space-y-1">
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-[#f7f8f8] font-medium">
-                          Changed 2 tasks
-                        </span>
-                        <span className="text-emerald-400 font-mono">
-                          +12 -0
-                        </span>
-                      </div>
-                      <div className="text-[11px] text-[#8a8f98] flex items-center gap-1">
-                        <GitPullRequest size={12} />
-                        <span>Ready for employee review</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Bottom Input (Matching Linear reference reply bar) */}
-                  <div className="p-2.5 border-t border-white/[0.06] bg-[#0c0d12]">
-                    <div className="flex items-center gap-2 bg-[#14161d] border border-white/[0.08] rounded-lg px-2.5 py-1.5 focus-within:border-white/30 transition-colors">
-                      <input
-                        type="text"
-                        placeholder="Reply or ask Onboard Assistant..."
-                        value={assistantInput}
-                        onChange={(e) => setAssistantInput(e.target.value)}
-                        className="bg-transparent text-xs text-[#f7f8f8] placeholder-[#5a5e6b] focus:outline-none flex-1"
-                      />
-                      <div className="flex items-center gap-1 text-[#8a8f98] shrink-0">
-                        <span className="text-[10px] text-[#5a5e6b] px-1 hover:text-[#f7f8f8] cursor-pointer">
-                          Skills ▾
-                        </span>
-                        <button
-                          type="button"
-                          className="p-1 hover:text-white transition-colors cursor-pointer"
-                        >
-                          <Paperclip size={13} />
-                        </button>
-                        <button
-                          type="button"
-                          className="w-5 h-5 rounded-full bg-white text-black flex items-center justify-center hover:bg-neutral-200 transition-colors cursor-pointer ml-0.5"
-                        >
-                          <ArrowUp size={11} weight="bold" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-            </aside>
-          )}
         </main>
       </div>
     </div>

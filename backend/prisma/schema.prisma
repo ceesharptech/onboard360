@@ -31,9 +31,10 @@ model User {
   companyId    String   @map("company_id")
   email        String   @unique
   passwordHash String   @map("password_hash")
-  role         String   @map("role") // 'hr_admin' | 'manager' | 'employee'
-  departmentId String?  @map("department_id")
-  createdAt    DateTime @default(now()) @map("created_at")
+  role               String   @map("role") // 'hr_admin' | 'manager' | 'employee'
+  departmentId       String?  @map("department_id")
+  mustChangePassword Boolean  @default(true) @map("must_change_password")
+  createdAt          DateTime @default(now()) @map("created_at")
 
   // Relations
   company           Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
@@ -130,6 +131,7 @@ model OnboardingTemplateTask {
   orderIndex    Int     @map("order_index")
   assigneeType  String  @map("assignee_type")
   dueOffsetDays Int     @map("due_offset_days")
+  taskUrl       String? @map("task_url")
 
   // Relations
   template OnboardingTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
@@ -149,6 +151,7 @@ model EmployeeTask {
   status               String    @default("pending") @map("status") // 'pending' | 'in_progress' | 'completed'
   completedAt          DateTime? @map("completed_at")
   sourceTemplateTaskId String?   @map("source_template_task_id") // Snapshot copy, not a live FK dependency
+  taskUrl              String?   @map("task_url")
 
   // Relations
   employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)

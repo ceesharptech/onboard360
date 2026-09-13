@@ -195,7 +195,8 @@ startxref
         },
       ];
 
-      // Store in pgvector via isolated vector search module
+      // Clear any chunks that async background processor might have inserted, then store manual test chunks
+      await vectorSearchService.deleteDocumentChunks(createdDocId);
       await vectorSearchService.storeDocumentChunks(
         createdDocId,
         fixtureCompanyA.company.id,

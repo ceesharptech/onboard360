@@ -38,7 +38,7 @@ app.get("/health", (req: Request, res: Response) => {
  * "Apply authenticate globally to all routes except /auth/login and /auth/refresh"
  * (and the health check endpoint).
  */
-const publicPathPrefixes = ["/health", "/auth/login", "/auth/refresh"];
+const publicPathPrefixes = ["/health", "/auth/login", "/auth/change-password", "/auth/refresh"];
 
 app.use((req: Request, res: Response, next: NextFunction) => {
   const isPublic = publicPathPrefixes.some(

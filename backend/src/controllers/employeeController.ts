@@ -117,6 +117,36 @@ export class EmployeeController {
     }
   }
 
+  async getMyManagerTasks(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const tasks = await employeeService.getMyAssignedManagerTasks(
+        req.user!.userId,
+        req.user!.companyId
+      );
+      res.status(200).json({
+        status: 'ok',
+        data: tasks,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getMyMentees(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await employeeService.getMyMenteeData(
+        req.user!.userId,
+        req.user!.companyId
+      );
+      res.status(200).json({
+        status: 'ok',
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async updateTask(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const employeeId = getParam(req.params.id);
@@ -129,6 +159,18 @@ export class EmployeeController {
       // If user is employee, they cannot reassign task assigneeType
       if (req.user!.role === 'employee' && validated.assigneeType !== undefined) {
         throw new ForbiddenError('Employees cannot reassign task ownership', 'FORBIDDEN');
+      }
+
+      // If user is mentor accessing mentee's tasks, they can only update tasks where assigneeType === 'mentor'
+      if (
+        req.user!.role === 'employee' &&
+        existing.mentor?.userId === req.user!.userId &&
+        existing.userId !== req.user!.userId
+      ) {
+        const targetTask = existing.tasks.find((t) => t.id === taskId);
+        if (!targetTask || targetTask.assigneeType !== 'mentor') {
+          throw new ForbiddenError('Mentors can only complete tasks assigned to mentors', 'FORBIDDEN');
+        }
       }
 
       const updatedTask = await employeeService.updateEmployeeTask(
