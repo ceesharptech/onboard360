@@ -1,3 +1,4 @@
+import fs from 'fs';
 import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken, UserRole, UserTokenPayload } from '../utils/token';
 import { UnauthorizedError, ForbiddenError, NotFoundError } from '../utils/errors';
@@ -54,6 +55,14 @@ export function requireRole(...allowedRoles: UserRole[]) {
     }
 
     if (!allowedRoles.includes(req.user.role)) {
+      // If a file was buffered/uploaded during multipart parsing, clean it up immediately
+      if (req.file?.path && fs.existsSync(req.file.path)) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch {
+          // Ignore unlink error
+        }
+      }
       throw new ForbiddenError(
         `User role '${req.user.role}' is not authorized to access this resource`,
         'FORBIDDEN'

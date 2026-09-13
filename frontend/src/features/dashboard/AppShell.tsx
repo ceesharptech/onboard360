@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { Badge } from "../../components/common/Badge";
 import {
   SignOut,
   Sparkle,
@@ -20,6 +19,7 @@ import {
   ArrowUp,
   Circle,
   UsersIcon,
+  FileText,
 } from "@phosphor-icons/react";
 
 export interface AppShellProps {
@@ -37,19 +37,6 @@ export const AppShell: React.FC<AppShellProps> = ({
   const [isAssistantOpen, setIsAssistantOpen] = useState(true);
   const [isAssistantMinimized, setIsAssistantMinimized] = useState(false);
   const [assistantInput, setAssistantInput] = useState("");
-  const [isStarred, setIsStarred] = useState(true);
-
-  const getRoleBadge = (role?: string) => {
-    switch (role) {
-      case "hr_admin":
-        return <Badge variant="white">HR Admin</Badge>;
-      case "manager":
-        return <Badge variant="purple">Manager</Badge>;
-      case "employee":
-      default:
-        return <Badge variant="green">Employee</Badge>;
-    }
-  };
 
   const navItems = [
     ...(user?.role === "employee"
@@ -83,6 +70,11 @@ export const AppShell: React.FC<AppShellProps> = ({
             id: "employees",
             label: "Employees",
             icon: <UsersIcon size={16} />,
+          },
+          {
+            id: "documents",
+            label: "Knowledge Base",
+            icon: <FileText size={16} />,
           },
           {
             id: "templates",

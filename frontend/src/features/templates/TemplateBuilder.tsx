@@ -6,7 +6,6 @@ import type {
   Department,
 } from "../../api/endpoints";
 import { templateApi, departmentApi } from "../../api/endpoints";
-import { Card } from "../../components/common/Card";
 import { Button } from "../../components/common/Button";
 import { Badge } from "../../components/common/Badge";
 import { Input } from "../../components/common/Input";

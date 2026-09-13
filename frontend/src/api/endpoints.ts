@@ -201,3 +201,60 @@ export const employeeApi = {
   getProgress: (employeeId: string) =>
     apiRequest<EmployeeProgress>(`/employees/${employeeId}/progress`),
 };
+
+export interface DocumentItem {
+  id: string;
+  companyId: string;
+  uploadedBy: string;
+  filename: string;
+  storagePath: string;
+  status: 'pending' | 'processing' | 'ready' | 'failed';
+  failureReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+  chunkCount?: number;
+}
+
+export interface RetrievedChunkItem {
+  id: string;
+  documentId: string;
+  companyId: string;
+  content: string;
+  chunkIndex: number;
+  similarity: number;
+  documentFilename: string;
+}
+
+export const documentApi = {
+  list: () => apiRequest<{ documents: DocumentItem[] }>('/documents'),
+  getOne: (id: string) => apiRequest<{ document: DocumentItem }>(`/documents/${id}`),
+  upload: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiRequest<{ document: DocumentItem }>('/documents', {
+      method: 'POST',
+      body: formData,
+    });
+  },
+  replace: (id: string, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiRequest<{ document: DocumentItem }>(`/documents/${id}`, {
+      method: 'PUT',
+      body: formData,
+    });
+  },
+  delete: (id: string) =>
+    apiRequest<{ message: string }>(`/documents/${id}`, {
+      method: 'DELETE',
+    }),
+  retrieve: (query: string, topK = 5) =>
+    apiRequest<{ query: string; totalMatches: number; chunks: RetrievedChunkItem[] }>(
+      '/documents/retrieve',
+      {
+        method: 'POST',
+        body: JSON.stringify({ query, topK }),
+      }
+    ),
+};
+

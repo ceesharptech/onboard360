@@ -6,6 +6,7 @@ import { EmployeeDashboard } from './features/employees/EmployeeDashboard';
 import { ManagerDashboard } from './features/manager/ManagerDashboard';
 import { HrAdminDashboard } from './features/admin/HrAdminDashboard';
 import { TemplateBuilder } from './features/templates/TemplateBuilder';
+import { DocumentManager } from './features/documents/DocumentManager';
 
 const MainApp: React.FC = () => {
   const { user, isAuthenticated, loading } = useAuth();
@@ -55,6 +56,7 @@ const MainApp: React.FC = () => {
       {user.role === 'hr_admin' && (
         <>
           {resolvedTab === 'employees' && <HrAdminDashboard initialTab="employees" />}
+          {resolvedTab === 'documents' && <DocumentManager />}
           {resolvedTab === 'departments' && <HrAdminDashboard initialTab="departments" />}
           {resolvedTab === 'templates' && <TemplateBuilder />}
         </>

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import type { Employee, EmployeeTask, Mentor } from "../../api/endpoints";
 import { employeeApi, departmentApi } from "../../api/endpoints";
-import { Card } from "../../components/common/Card";
 import { Button } from "../../components/common/Button";
 import { Badge } from "../../components/common/Badge";
 import { Modal } from "../../components/common/Modal";
@@ -113,10 +112,10 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/[0.06]">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#f7f8f8] m-0">
+          <h1 className="text-2xl font-semibold tracking-tight text-[#f7f8f8] m-0">
             Team Onboarding Roster
           </h1>
-          <p className="text-xs text-[#8a8f98] mt-1">
+          <p className="text-sm text-[#8a8f98] mt-1">
             Monitor progress, inspect onboarding roadmaps, and reassign task
             ownership across your team.
           </p>

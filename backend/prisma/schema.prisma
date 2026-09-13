@@ -157,14 +157,15 @@ model EmployeeTask {
 }
 
 model Document {
-  id          String   @id @default(uuid())
-  companyId   String   @map("company_id")
-  uploadedBy  String   @map("uploaded_by")
-  filename    String
-  storagePath String   @map("storage_path")
-  status      String   @default("pending") @map("status") // 'pending' | 'processing' | 'ready' | 'failed'
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id            String   @id @default(uuid())
+  companyId     String   @map("company_id")
+  uploadedBy    String   @map("uploaded_by")
+  filename      String
+  storagePath   String   @map("storage_path")
+  status        String   @default("pending") @map("status") // 'pending' | 'processing' | 'ready' | 'failed'
+  failureReason String?  @map("failure_reason")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   // Relations
   company Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
