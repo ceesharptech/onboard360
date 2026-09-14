@@ -6,12 +6,15 @@ import {
   ShieldCheck,
   UserCircle,
   Briefcase,
+  Eye,
+  EyeSlash,
 } from "@phosphor-icons/react";
 
 export const LoginPage: React.FC = () => {
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -80,15 +83,27 @@ export const LoginPage: React.FC = () => {
             autoComplete="email"
           />
 
-          <Input
-            label="Password"
-            type="password"
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoComplete="current-password"
-          />
+          <div className="relative">
+            <Input
+              label="Password"
+              type={showPassword ? "text" : "password"}
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+              className="pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-8 text-[#8a8f98] hover:text-[#f7f8f8] transition-colors p-1"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              title={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
 
           <Button
             type="submit"

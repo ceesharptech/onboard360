@@ -160,6 +160,16 @@ describe('Pre-Phase-5 Corrective Batch Tests', () => {
       expect(nextLoginRes.status).toBe(200);
       expect(nextLoginRes.body.status).toBe('ok');
       expect(nextLoginRes.body.data.accessToken).toBeDefined();
+
+      // 6. Employee can list their own onboarding record via GET /employees
+      const listEmpRes = await request(app)
+        .get('/employees')
+        .set('Authorization', `Bearer ${nextLoginRes.body.data.accessToken}`);
+
+      expect(listEmpRes.status).toBe(200);
+      expect(listEmpRes.body.data.length).toBe(1);
+      expect(listEmpRes.body.data[0].email).toBe(employeeEmail);
+      expect(listEmpRes.body.data[0].name).toBe('Jane Doe');
     });
   });
 
@@ -310,28 +320,30 @@ describe('Pre-Phase-5 Corrective Batch Tests', () => {
       expect(completeRes.body.data.status).toBe('completed');
     });
 
-    it('forbids Mentor from completing tasks not assigned to mentor (e.g. employee tasks)', async () => {
-      // Find a non-mentor task for the mentee
-      const getRes = await request(app)
-        .get(`/employees/${menteeEmployee.id}`)
-        .set('Authorization', `Bearer ${mentorUser.token}`);
-
-      expect(getRes.status).toBe(200);
-      const managerTask = getRes.body.data.tasks.find((t: any) => t.assigneeType === 'manager');
+    it('forbids Mentor from completing tasks not assigned to mentor (e.g. employee/manager tasks, returns 404)', async () => {
+      // Get manager task from created employee
+      const managerTask = menteeEmployee.tasks.find((t: any) => t.assigneeType === 'manager');
       expect(managerTask).toBeDefined();
 
-      // Mentor attempts to update manager task -> 403 Forbidden
+      // Mentor attempts to update manager task -> 404 Not Found (scoped out)
       const patchRes = await request(app)
         .patch(`/employees/${menteeEmployee.id}/tasks/${managerTask.id}`)
         .set('Authorization', `Bearer ${mentorUser.token}`)
         .send({ status: 'pending' });
 
-      expect(patchRes.status).toBe(403);
-      expect(patchRes.body.error.code).toBe('FORBIDDEN');
+      expect(patchRes.status).toBe(404);
+      expect(patchRes.body.error.code).toBe('NOT_FOUND');
     });
 
-    it('enforces cross-mentor isolation (other employees cannot access mentee data)', async () => {
-      // employee1DeptA is not a mentor for menteeEmployee
+    it('enforces cross-mentor and direct employee record isolation (returns 404)', async () => {
+      // Mentor cannot access mentee's full employee record directly (must use /mentor/my-mentees)
+      const mentorDirectRes = await request(app)
+        .get(`/employees/${menteeEmployee.id}`)
+        .set('Authorization', `Bearer ${mentorUser.token}`);
+
+      expect(mentorDirectRes.status).toBe(404);
+
+      // Other employee (not mentor) cannot access mentee record
       const unauthorizedRes = await request(app)
         .get(`/employees/${menteeEmployee.id}`)
         .set('Authorization', `Bearer ${fixture.employee1DeptA.token}`);

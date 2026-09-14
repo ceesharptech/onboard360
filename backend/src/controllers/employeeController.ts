@@ -7,7 +7,8 @@ import {
   paginationQuerySchema,
 } from '../utils/validation';
 import { scopeToOwnEmployee } from '../middleware/auth';
-import { ForbiddenError } from '../utils/errors';
+import prisma from '../utils/prisma';
+import { ForbiddenError, NotFoundError } from '../utils/errors';
 
 function getParam(param: string | string[] | undefined): string {
   if (Array.isArray(param)) return param[0];
@@ -38,15 +39,39 @@ export class EmployeeController {
 
       if (req.user!.role === 'employee') {
         // Employee can only list their own employee record
-        const employee = await employeeService.listEmployees(companyId, {
-          search: req.user!.userId,
+        let employee = await employeeService.listEmployees(companyId, {
+          userId: req.user!.userId,
           page: 1,
           limit: 1,
         });
+
+        // Fallback: if not linked by userId yet, look up by user email and auto-link
+        if (employee.data.length === 0 && req.user!.email) {
+          const byEmail = await employeeService.listEmployees(companyId, {
+            search: req.user!.email,
+            page: 1,
+            limit: 1,
+          });
+          const matched = byEmail.data.filter(
+            (e) => e.email.toLowerCase() === req.user!.email.toLowerCase()
+          );
+          if (matched.length > 0) {
+            await prisma.employee.update({
+              where: { id: matched[0].id },
+              data: { userId: req.user!.userId },
+            });
+            matched[0].userId = req.user!.userId;
+            employee = {
+              data: matched,
+              pagination: { total: matched.length, page: 1, limit: 1, totalPages: 1 },
+            };
+          }
+        }
+
         res.status(200).json({
           status: 'ok',
-          data: employee.data.filter((e) => e.userId === req.user!.userId),
-          pagination: { total: 1, page: 1, limit: 1, totalPages: 1 },
+          data: employee.data,
+          pagination: { total: employee.data.length, page: 1, limit: 1, totalPages: 1 },
         });
         return;
       }
@@ -152,26 +177,51 @@ export class EmployeeController {
       const employeeId = getParam(req.params.id);
       const taskId = getParam(req.params.taskId);
       const existing = await employeeService.getEmployeeById(employeeId, req.user!.companyId);
-      scopeToOwnEmployee(existing, req);
+
+      // Verify company scope
+      if (existing.companyId !== req.user!.companyId) {
+        throw new NotFoundError('Resource not found', 'NOT_FOUND');
+      }
 
       const validated = updateEmployeeTaskSchema.parse(req.body);
 
-      // If user is employee, they cannot reassign task assigneeType
-      if (req.user!.role === 'employee' && validated.assigneeType !== undefined) {
-        throw new ForbiddenError('Employees cannot reassign task ownership', 'FORBIDDEN');
-      }
+      // Scoping rules for task updates:
+      if (req.user!.role === 'employee') {
+        const isOwnRecord = existing.userId === req.user!.userId;
+        const isAssignedMentor = existing.mentor?.userId === req.user!.userId;
 
-      // If user is mentor accessing mentee's tasks, they can only update tasks where assigneeType === 'mentor'
-      if (
-        req.user!.role === 'employee' &&
-        existing.mentor?.userId === req.user!.userId &&
-        existing.userId !== req.user!.userId
-      ) {
-        const targetTask = existing.tasks.find((t) => t.id === taskId);
-        if (!targetTask || targetTask.assigneeType !== 'mentor') {
-          throw new ForbiddenError('Mentors can only complete tasks assigned to mentors', 'FORBIDDEN');
+        // Employees cannot reassign task ownership
+        if (validated.assigneeType !== undefined) {
+          throw new ForbiddenError('Employees cannot reassign task ownership', 'FORBIDDEN');
+        }
+
+        if (!isOwnRecord && !isAssignedMentor) {
+          throw new NotFoundError('Resource not found', 'NOT_FOUND');
+        }
+
+        if (isAssignedMentor && !isOwnRecord) {
+          // Mentor can only update tasks assigned to 'mentor'
+          const targetTask = existing.tasks.find((t) => t.id === taskId);
+          if (!targetTask || targetTask.assigneeType !== 'mentor') {
+            throw new NotFoundError('Resource not found', 'NOT_FOUND');
+          }
+        }
+      } else if (req.user!.role === 'manager') {
+        const isAssignedMentor = existing.mentor?.userId === req.user!.userId;
+        const isOwnDepartment = req.user!.departmentId === existing.departmentId;
+
+        if (!isOwnDepartment && !isAssignedMentor) {
+          throw new NotFoundError('Resource not found', 'NOT_FOUND');
+        }
+
+        if (!isOwnDepartment && isAssignedMentor) {
+          const targetTask = existing.tasks.find((t) => t.id === taskId);
+          if (!targetTask || targetTask.assigneeType !== 'mentor') {
+            throw new NotFoundError('Resource not found', 'NOT_FOUND');
+          }
         }
       }
+      // hr_admin has company-wide access
 
       const updatedTask = await employeeService.updateEmployeeTask(
         employeeId,

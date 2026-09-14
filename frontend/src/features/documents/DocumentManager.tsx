@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import type { DocumentItem, RetrievedChunkItem } from "../../api/endpoints";
 import { documentApi } from "../../api/endpoints";
+import { useToast } from "../../context/ToastContext";
 import { Card } from "../../components/common/Card";
 import { Button } from "../../components/common/Button";
 import { Badge } from "../../components/common/Badge";
@@ -21,6 +22,7 @@ import {
 } from "@phosphor-icons/react";
 
 export const DocumentManager: React.FC = () => {
+  const toast = useToast();
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -103,6 +105,7 @@ export const DocumentManager: React.FC = () => {
     e.preventDefault();
     if (!selectedFile) return;
 
+    const filename = selectedFile.name;
     setIsUploading(true);
     setUploadError(null);
 
@@ -111,10 +114,11 @@ export const DocumentManager: React.FC = () => {
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       await fetchDocuments();
+      toast.success("Document uploaded", `"${filename}" is now processing.`);
     } catch (err: unknown) {
-      setUploadError(
-        err instanceof Error ? err.message : "Failed to upload document",
-      );
+      const msg = err instanceof Error ? err.message : "Failed to upload document";
+      setUploadError(msg);
+      toast.error("Upload failed", msg);
     } finally {
       setIsUploading(false);
     }
@@ -131,6 +135,7 @@ export const DocumentManager: React.FC = () => {
     e.preventDefault();
     if (!targetDoc || !replaceFile) return;
 
+    const docName = targetDoc.filename;
     setIsReplacing(true);
     try {
       await documentApi.replace(targetDoc.id, replaceFile);
@@ -138,10 +143,11 @@ export const DocumentManager: React.FC = () => {
       setTargetDoc(null);
       setReplaceFile(null);
       await fetchDocuments();
+      toast.success("Document replaced", `"${docName}" replaced and queued for reprocessing.`);
     } catch (err: unknown) {
-      setUploadError(
-        err instanceof Error ? err.message : "Failed to replace document",
-      );
+      const msg = err instanceof Error ? err.message : "Failed to replace document";
+      setUploadError(msg);
+      toast.error("Replacement failed", msg);
     } finally {
       setIsReplacing(false);
     }
@@ -159,10 +165,11 @@ export const DocumentManager: React.FC = () => {
     try {
       await documentApi.delete(doc.id);
       await fetchDocuments();
+      toast.success("Document deleted", `"${doc.filename}" and its vector chunks were removed.`);
     } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "Failed to delete document",
-      );
+      const msg = err instanceof Error ? err.message : "Failed to delete document";
+      setError(msg);
+      toast.error("Delete failed", msg);
     }
   };
 

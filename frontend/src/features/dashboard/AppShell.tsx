@@ -101,9 +101,9 @@ export const AppShell: React.FC<AppShellProps> = ({
     currentTab === "qorra"
       ? "Qorra AI Assistant"
       : currentTab === "documents"
-      ? "Company Knowledge Base"
-      : allNavItems.find((item) => item.id === currentTab)?.label ||
-        "Onboarding Workspace";
+        ? "Company Knowledge Base"
+        : allNavItems.find((item) => item.id === currentTab)?.label ||
+          "Onboarding Workspace";
 
   return (
     <div className="flex h-screen w-full bg-[#08080a] text-[#f7f8f8] overflow-hidden font-sans select-none">
@@ -324,7 +324,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             {/* <span className="text-[11px] text-[#5a5e6b] px-2 hidden sm:inline">
               1 / 1
             </span> */}
-            <button
+            {/* <button
               type="button"
               className="p-1.5 hover:text-white hover:bg-white/[0.06] rounded-md transition-colors cursor-pointer"
               title="Copy view link"
@@ -344,7 +344,7 @@ export const AppShell: React.FC<AppShellProps> = ({
               title="Branch / Activity"
             >
               <GitPullRequest size={14} />
-            </button>
+            </button> */}
           </div>
         </header>
 

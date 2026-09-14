@@ -6,6 +6,7 @@ export interface User {
   role: 'hr_admin' | 'manager' | 'employee';
   companyId: string;
   departmentId: string | null;
+  mustChangePassword?: boolean;
 }
 
 export interface Department {
@@ -15,6 +16,19 @@ export interface Department {
   _count?: {
     employees: number;
     mentors: number;
+  };
+}
+
+export interface MentorMentee {
+  id: string;
+  name: string;
+  jobRole: string;
+  startDate: string;
+  department: { id: string; name: string };
+  progress: {
+    totalTasks: number;
+    completedTasks: number;
+    percentComplete: number;
   };
 }
 
@@ -30,6 +44,7 @@ export interface Mentor {
     email: string;
     role: string;
   };
+  mentees?: MentorMentee[];
 }
 
 export interface TemplateTask {
@@ -40,6 +55,7 @@ export interface TemplateTask {
   orderIndex: number;
   assigneeType: 'employee' | 'manager' | 'mentor';
   dueOffsetDays: number;
+  taskUrl?: string | null;
 }
 
 export interface OnboardingTemplate {
@@ -64,9 +80,37 @@ export interface EmployeeTask {
   orderIndex: number;
   assigneeType: 'employee' | 'manager' | 'mentor';
   dueDate: string | null;
+  taskUrl?: string | null;
   status: 'pending' | 'in_progress' | 'completed';
   completedAt: string | null;
   sourceTemplateTaskId: string | null;
+}
+
+export interface ManagerAssignedTask extends EmployeeTask {
+  employee: {
+    id: string;
+    name: string;
+    jobRole: string;
+    email: string;
+    department: { id: string; name: string };
+  };
+}
+
+export interface MyMenteeItem {
+  id: string;
+  name: string;
+  email: string;
+  jobRole: string;
+  startDate: string;
+  department: { id: string; name: string };
+  progress: EmployeeProgress;
+  mentorTasks: EmployeeTask[];
+  tasks?: EmployeeTask[];
+}
+
+export interface MyMenteeResponse {
+  isMentor: boolean;
+  mentees: MyMenteeItem[];
 }
 
 export interface EmployeeProgress {
@@ -104,11 +148,25 @@ export interface PaginatedResult<T> {
   };
 }
 
+export interface LoginResult {
+  accessToken?: string;
+  refreshToken?: string;
+  user?: User;
+  mustChangePassword?: boolean;
+  email?: string;
+}
+
 export const authApi = {
   login: (email: string, password: string) =>
-    apiRequest<{ accessToken: string; refreshToken: string; user: User }>('/auth/login', {
+    apiRequest<LoginResult>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
+      skipAuth: true,
+    }),
+  changePassword: (email: string, currentPassword: string, newPassword: string) =>
+    apiRequest<{ accessToken: string; refreshToken: string; user: User }>('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ email, currentPassword, newPassword }),
       skipAuth: true,
     }),
   logout: (refreshToken: string) =>
@@ -116,6 +174,13 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify({ refreshToken }),
     }),
+};
+
+export const userApi = {
+  list: (departmentId?: string) => {
+    const query = departmentId ? `?departmentId=${encodeURIComponent(departmentId)}` : '';
+    return apiRequest<User[]>(`/users${query}`);
+  },
 };
 
 export const departmentApi = {
@@ -173,10 +238,12 @@ export const employeeApi = {
   create: (data: {
     name: string;
     email: string;
-    departmentId: string;
-    jobRole: string;
-    startDate: string;
-    employmentType: 'full_time' | 'part_time' | 'contract';
+    role?: 'hr_admin' | 'manager' | 'employee';
+    initialPassword?: string;
+    departmentId?: string | null;
+    jobRole?: string | null;
+    startDate?: string | null;
+    employmentType?: 'full_time' | 'part_time' | 'contract' | null;
     managerId?: string | null;
     mentorId?: string | null;
   }) =>
@@ -200,6 +267,10 @@ export const employeeApi = {
     }),
   getProgress: (employeeId: string) =>
     apiRequest<EmployeeProgress>(`/employees/${employeeId}/progress`),
+  getMyManagerTasks: () =>
+    apiRequest<ManagerAssignedTask[]>('/employees/manager/assigned-tasks'),
+  getMyMentees: () =>
+    apiRequest<MyMenteeResponse>('/employees/mentor/my-mentees'),
 };
 
 export interface DocumentItem {

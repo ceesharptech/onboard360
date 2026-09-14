@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { useToast } from "../../context/ToastContext";
 import type {
   OnboardingTemplate,
   TemplateTask,
@@ -18,10 +19,12 @@ import {
   ArrowDown,
   PencilSimple,
   GitFork,
+  Link as LinkIcon,
 } from "@phosphor-icons/react";
 
 export const TemplateBuilder: React.FC = () => {
   const { user } = useAuth();
+  const toast = useToast();
   const [templates, setTemplates] = useState<OnboardingTemplate[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -73,6 +76,7 @@ export const TemplateBuilder: React.FC = () => {
         orderIndex: 0,
         assigneeType: "employee",
         dueOffsetDays: 1,
+        taskUrl: null,
       },
     ]);
     setIsModalOpen(true);
@@ -86,7 +90,12 @@ export const TemplateBuilder: React.FC = () => {
     setIsDefault(t.isDefault);
     setTasks(
       t.tasks && t.tasks.length > 0
-        ? [...t.tasks].sort((a, b) => a.orderIndex - b.orderIndex)
+        ? [...t.tasks]
+            .sort((a, b) => a.orderIndex - b.orderIndex)
+            .map((task) => ({
+              ...task,
+              taskUrl: task.taskUrl ?? null,
+            }))
         : [],
     );
     setIsModalOpen(true);
@@ -102,6 +111,7 @@ export const TemplateBuilder: React.FC = () => {
         orderIndex: tasks.length,
         assigneeType: "employee",
         dueOffsetDays: 3,
+        taskUrl: null,
       },
     ]);
   };
@@ -126,7 +136,7 @@ export const TemplateBuilder: React.FC = () => {
   const handleUpdateTaskField = (
     index: number,
     field: keyof TemplateTask,
-    value: string | number,
+    value: string | number | null,
   ) => {
     const updated = [...tasks];
     updated[index] = { ...updated[index], [field]: value };
@@ -155,19 +165,24 @@ export const TemplateBuilder: React.FC = () => {
           orderIndex: idx,
           assigneeType: t.assigneeType,
           dueOffsetDays: Number(t.dueOffsetDays),
+          taskUrl: t.taskUrl && t.taskUrl.trim() ? t.taskUrl.trim() : null,
         })),
       };
 
       if (editingTemplate) {
         await templateApi.update(editingTemplate.id, payload);
+        toast.success("Template updated", `"${name}" was saved successfully`);
       } else {
         await templateApi.create(payload);
+        toast.success("Template created", `"${name}" was created successfully`);
       }
 
       setIsModalOpen(false);
       fetchTemplates();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to save template");
+      const msg = err instanceof Error ? err.message : "Failed to save template";
+      setError(msg);
+      toast.error("Failed to save template", msg);
     } finally {
       setIsSaving(false);
     }
@@ -177,11 +192,12 @@ export const TemplateBuilder: React.FC = () => {
     if (!confirm("Are you sure you want to delete this template?")) return;
     try {
       await templateApi.delete(id);
+      toast.info("Template deleted", "The template was removed");
       fetchTemplates();
     } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "Failed to delete template",
-      );
+      const msg = err instanceof Error ? err.message : "Failed to delete template";
+      setError(msg);
+      toast.error("Failed to delete template", msg);
     }
   };
 
@@ -294,9 +310,16 @@ export const TemplateBuilder: React.FC = () => {
                         key={task.id || idx}
                         className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-md bg-[#14161a] border border-white/[0.06]"
                       >
-                        <span className="truncate text-[#f7f8f8] max-w-[220px]">
-                          {task.orderIndex + 1}. {task.title}
-                        </span>
+                        <div className="flex items-center gap-1.5 truncate max-w-[220px]">
+                          <span className="truncate text-[#f7f8f8]">
+                            {task.orderIndex + 1}. {task.title}
+                          </span>
+                          {task.taskUrl && (
+                            <span title={task.taskUrl} className="shrink-0 flex items-center">
+                              <LinkIcon size={12} className="text-[#8a8f98]" />
+                            </span>
+                          )}
+                        </div>
                         <span className="text-[11px] font-mono text-[#8a8f98] shrink-0">
                           +{task.dueOffsetDays}d ({task.assigneeType})
                         </span>
@@ -491,6 +514,21 @@ export const TemplateBuilder: React.FC = () => {
                         />
                         <span className="text-[11px] text-[#5a5e6b]">d</span>
                       </div>
+                    </div>
+
+                    <div className="sm:col-span-3">
+                      <input
+                        placeholder="External link (optional, e.g. https://wiki.company.com/handbook)"
+                        value={task.taskUrl || ""}
+                        onChange={(e) =>
+                          handleUpdateTaskField(
+                            index,
+                            "taskUrl",
+                            e.target.value,
+                          )
+                        }
+                        className="w-full bg-[#14161a] border border-white/[0.08] focus:border-white/30 text-xs text-[#f7f8f8] rounded-md px-2.5 py-1.5 focus:outline-none"
+                      />
                     </div>
                   </div>
 

@@ -228,6 +228,7 @@ export class EmployeeService {
     companyId: string,
     options: {
       departmentId?: string | null;
+      userId?: string;
       page?: number;
       limit?: number;
       search?: string;
@@ -240,6 +241,9 @@ export class EmployeeService {
     const where: any = { companyId };
     if (options.departmentId) {
       where.departmentId = options.departmentId;
+    }
+    if (options.userId) {
+      where.userId = options.userId;
     }
     if (options.search) {
       where.OR = [
@@ -547,6 +551,7 @@ export class EmployeeService {
         department: emp.department,
         progress,
         mentorTasks,
+        tasks: emp.tasks,
       };
     });
 

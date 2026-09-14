@@ -64,9 +64,9 @@ export const templateTaskSchema = z.object({
   taskUrl: z
     .string()
     .trim()
-    .min(1, 'Task URL cannot be empty if provided')
     .optional()
-    .nullable(),
+    .nullable()
+    .transform((val) => (val && val.length > 0 ? val : null)),
 });
 
 export const createTemplateSchema = z.object({

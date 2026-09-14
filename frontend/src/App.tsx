@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
 import { LoginPage } from './features/auth/LoginPage';
+import { ForcedPasswordChange } from './features/auth/ForcedPasswordChange';
 import { AppShell } from './features/dashboard/AppShell';
 import { EmployeeDashboard } from './features/employees/EmployeeDashboard';
 import { ManagerDashboard } from './features/manager/ManagerDashboard';
@@ -9,9 +11,42 @@ import { TemplateBuilder } from './features/templates/TemplateBuilder';
 import { DocumentManager } from './features/documents/DocumentManager';
 import { QorraChat } from './features/assistant/QorraChat';
 
+const getDefaultTabForRole = (role?: string) => {
+  switch (role) {
+    case 'employee':
+      return 'my-onboarding';
+    case 'manager':
+      return 'team-roster';
+    case 'hr_admin':
+      return 'employees';
+    default:
+      return 'my-onboarding';
+  }
+};
+
+const getValidTabsForRole = (role?: string) => {
+  switch (role) {
+    case 'employee':
+      return ['my-onboarding', 'qorra'];
+    case 'manager':
+      return ['team-roster', 'templates', 'qorra'];
+    case 'hr_admin':
+      return ['employees', 'templates', 'departments', 'documents', 'qorra'];
+    default:
+      return [];
+  }
+};
+
 const MainApp: React.FC = () => {
-  const { user, isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading, pendingPasswordChange } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('default');
+
+  // Reset to default tab whenever user logs in or switches
+  useEffect(() => {
+    if (user) {
+      setActiveTab(getDefaultTabForRole(user.role));
+    }
+  }, [user?.id, user?.role]);
 
   if (loading) {
     return (
@@ -24,19 +59,20 @@ const MainApp: React.FC = () => {
     );
   }
 
+  // Mandatory forced password change interceptor
+  if (pendingPasswordChange) {
+    return <ForcedPasswordChange email={pendingPasswordChange.email} />;
+  }
+
   if (!isAuthenticated || !user) {
     return <LoginPage />;
   }
 
-  // Determine current tab default based on role if default
+  // Determine current tab default based on role: validate activeTab belongs to role
   const resolvedTab =
-    activeTab === 'default'
-      ? user.role === 'employee'
-        ? 'my-onboarding'
-        : user.role === 'manager'
-        ? 'team-roster'
-        : 'employees'
-      : activeTab;
+    user && getValidTabsForRole(user.role).includes(activeTab)
+      ? activeTab
+      : getDefaultTabForRole(user?.role);
 
   return (
     <AppShell currentTab={resolvedTab} onTabChange={setActiveTab}>
@@ -71,8 +107,10 @@ const MainApp: React.FC = () => {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <MainApp />
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <MainApp />
+      </AuthProvider>
+    </ToastProvider>
   );
 }
