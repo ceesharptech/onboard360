@@ -9,9 +9,6 @@ import {
   Buildings,
   MagnifyingGlass,
   CaretDown,
-  LinkSimple,
-  Copy,
-  GitPullRequest,
   UsersIcon,
   FileText,
 } from "@phosphor-icons/react";

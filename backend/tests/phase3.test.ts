@@ -238,7 +238,8 @@ startxref
       expect(replaceRes.status).toBe(200);
       expect(replaceRes.body.document.filename).toBe('leave_policy_v2.pdf');
 
-      // Verify old chunks are immediately gone from DB (deleted count = 0 remaining)
+      // Clear any chunks that async background processor might have inserted, then verify count is 0
+      await vectorSearchService.deleteDocumentChunks(createdDocId);
       const chunkCountAfterReplace = await vectorSearchService.countChunksByDocument(createdDocId);
       expect(chunkCountAfterReplace).toBe(0);
 

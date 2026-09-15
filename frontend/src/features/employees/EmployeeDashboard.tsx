@@ -18,6 +18,8 @@ import {
   ArrowSquareOut,
   CheckCircle,
   Link as LinkIcon,
+  LockSimple,
+  Info,
 } from "@phosphor-icons/react";
 
 export const EmployeeDashboard: React.FC = () => {
@@ -31,6 +33,19 @@ export const EmployeeDashboard: React.FC = () => {
 
   // Mentee Full Roadmap Modal
   const [selectedMenteeRoadmap, setSelectedMenteeRoadmap] = useState<Employee | null>(null);
+
+  // Restricted Task Explanation Modal (Fix 1 Requirement)
+  const [restrictedTaskNotice, setRestrictedTaskNotice] = useState<{
+    title: string;
+    assigneeType: "manager" | "mentor";
+  } | null>(null);
+
+  const handleRestrictedTaskClick = (task: EmployeeTask) => {
+    setRestrictedTaskNotice({
+      title: task.title,
+      assigneeType: task.assigneeType as "manager" | "mentor",
+    });
+  };
 
   const loadData = async () => {
     setIsLoading(true);
@@ -64,6 +79,13 @@ export const EmployeeDashboard: React.FC = () => {
 
   const handleToggleTask = async (task: EmployeeTask) => {
     if (!employee) return;
+
+    // Fix 1: Disallow employee toggling manager or mentor tasks
+    if (task.assigneeType !== "employee") {
+      handleRestrictedTaskClick(task);
+      return;
+    }
+
     const newStatus = task.status === "completed" ? "pending" : "completed";
 
     // Optimistic update
@@ -101,8 +123,16 @@ export const EmployeeDashboard: React.FC = () => {
       );
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to update task status";
-      setError(msg);
-      toast.error("Failed to update task", msg);
+      // If rejected due to assignee type mismatch, show persistent explanatory modal
+      if (
+        msg.includes("WRONG_ASSIGNEE_TYPE") ||
+        msg.toLowerCase().includes("only the assigned")
+      ) {
+        handleRestrictedTaskClick(task);
+      } else {
+        setError(msg);
+        toast.error("Failed to update task", msg);
+      }
       loadData();
     }
   };
@@ -339,28 +369,68 @@ export const EmployeeDashboard: React.FC = () => {
                       !isCompleted &&
                       task.dueDate &&
                       new Date(task.dueDate) < new Date();
+                    const isEmployeeTask = task.assigneeType === "employee";
 
                     return (
                       <div
                         key={task.id}
-                        onClick={() => handleToggleTask(task)}
-                        className={`flex items-start justify-between p-3 rounded-lg border transition-all cursor-pointer group select-none ${
+                        onClick={() => {
+                          if (isEmployeeTask) {
+                            handleToggleTask(task);
+                          } else {
+                            handleRestrictedTaskClick(task);
+                          }
+                        }}
+                        className={`flex items-start justify-between p-3 rounded-lg border transition-all select-none ${
+                          isEmployeeTask
+                            ? "cursor-pointer group hover:border-white/[0.12] hover:bg-[#13151a]"
+                            : "cursor-default"
+                        } ${
                           isCompleted
                             ? "bg-[#0b0c0f]/60 border-white/[0.03] opacity-65"
-                            : "bg-[#0f1013] border-white/[0.06] hover:border-white/[0.12] hover:bg-[#13151a]"
+                            : isEmployeeTask
+                              ? "bg-[#0f1013] border-white/[0.06]"
+                              : "bg-[#0f1013]/70 border-white/[0.04]"
                         }`}
                       >
                         <div className="flex items-start gap-3 flex-1 min-w-0">
-                          <button
-                            type="button"
-                            className={`mt-0.5 w-4.5 h-4.5 rounded-md flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
-                              isCompleted
-                                ? "bg-emerald-500 text-black"
-                                : "border border-white/[0.15] group-hover:border-white/40 bg-white/[0.02]"
-                            }`}
-                          >
-                            {isCompleted && <Check size={11} weight="bold" />}
-                          </button>
+                          {isEmployeeTask ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleTask(task);
+                              }}
+                              className={`mt-0.5 w-4.5 h-4.5 rounded-md flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
+                                isCompleted
+                                  ? "bg-emerald-500 text-black"
+                                  : "border border-white/[0.15] group-hover:border-white/40 bg-white/[0.02]"
+                              }`}
+                              title={isCompleted ? "Mark incomplete" : "Mark completed"}
+                            >
+                              {isCompleted && <Check size={11} weight="bold" />}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRestrictedTaskClick(task);
+                              }}
+                              className={`mt-0.5 w-4.5 h-4.5 rounded-md flex items-center justify-center shrink-0 cursor-not-allowed transition-opacity ${
+                                isCompleted
+                                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 opacity-75"
+                                  : "border border-white/[0.08] bg-white/[0.02] text-[#62666d] opacity-50 hover:opacity-80"
+                              }`}
+                              title={`Assigned to ${task.assigneeType} — only they can mark this complete. Click for details.`}
+                            >
+                              {isCompleted ? (
+                                <Check size={11} weight="bold" />
+                              ) : (
+                                <LockSimple size={10} />
+                              )}
+                            </button>
+                          )}
 
                           <div className="space-y-0.5 flex-1 min-w-0 pr-3">
                             <div className="flex items-center gap-2 flex-wrap">
@@ -421,6 +491,7 @@ export const EmployeeDashboard: React.FC = () => {
                                   : "gray"
                             }
                           >
+                            {!isEmployeeTask && <LockSimple size={10} className="mr-1 inline" />}
                             {task.assigneeType}
                           </Badge>
                         </div>
@@ -637,6 +708,61 @@ export const EmployeeDashboard: React.FC = () => {
             <div className="flex justify-end pt-3 border-t border-white/[0.06]">
               <Button variant="ghost" size="sm" onClick={() => setSelectedMenteeRoadmap(null)}>
                 Close
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Restricted Task Explanation Modal (Fix 1 Requirement) */}
+      <Modal
+        isOpen={Boolean(restrictedTaskNotice)}
+        onClose={() => setRestrictedTaskNotice(null)}
+        title={
+          restrictedTaskNotice?.assigneeType === "manager"
+            ? "Manager Action Required"
+            : "Mentor Action Required"
+        }
+        maxWidth="sm"
+      >
+        {restrictedTaskNotice && (
+          <div className="space-y-4 text-xs">
+            <div className="p-3.5 rounded-lg bg-[#14161a] border border-white/[0.06] flex items-start gap-3">
+              <div className="p-2 rounded-md bg-amber-500/10 text-amber-400 shrink-0 mt-0.5 border border-amber-500/20">
+                <Info size={18} weight="bold" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-sm font-medium text-[#f7f8f8] m-0">
+                  {restrictedTaskNotice.title}
+                </h4>
+                <p className="text-xs text-[#8a8f98] leading-relaxed m-0">
+                  This task is assigned to your{" "}
+                  <span className="text-white font-medium">
+                    {restrictedTaskNotice.assigneeType === "manager"
+                      ? "Department Manager"
+                      : "Assigned Mentor"}
+                  </span>
+                  . Only they have authorization to mark this task complete on your roadmap.
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-[#8a8f98] leading-relaxed">
+              Please follow up directly with your{" "}
+              {restrictedTaskNotice.assigneeType === "manager" ? "manager" : "mentor"}
+              {restrictedTaskNotice.assigneeType === "mentor" && employee?.mentor
+                ? ` (${employee.mentor.email})`
+                : ""}{" "}
+              to confirm when this task has been completed and request that they update its status.
+            </p>
+
+            <div className="flex justify-end pt-3 border-t border-white/[0.06]">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => setRestrictedTaskNotice(null)}
+              >
+                Understood
               </Button>
             </div>
           </div>

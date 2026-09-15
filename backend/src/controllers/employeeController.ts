@@ -183,13 +183,20 @@ export class EmployeeController {
         throw new NotFoundError('Resource not found', 'NOT_FOUND');
       }
 
+      const targetTask = existing.tasks.find((t) => t.id === taskId);
+      if (!targetTask) {
+        throw new NotFoundError('Resource not found', 'NOT_FOUND');
+      }
+
       const validated = updateEmployeeTaskSchema.parse(req.body);
 
       // Scoping rules for task updates:
-      if (req.user!.role === 'employee') {
-        const isOwnRecord = existing.userId === req.user!.userId;
-        const isAssignedMentor = existing.mentor?.userId === req.user!.userId;
+      const isOwnRecord = existing.userId === req.user!.userId;
+      const isAssignedMentor = existing.mentor?.userId === req.user!.userId;
+      const isOwnDepartment =
+        req.user!.role === 'manager' && req.user!.departmentId === existing.departmentId;
 
+      if (req.user!.role === 'employee') {
         // Employees cannot reassign task ownership
         if (validated.assigneeType !== undefined) {
           throw new ForbiddenError('Employees cannot reassign task ownership', 'FORBIDDEN');
@@ -200,28 +207,52 @@ export class EmployeeController {
         }
 
         if (isAssignedMentor && !isOwnRecord) {
-          // Mentor can only update tasks assigned to 'mentor'
-          const targetTask = existing.tasks.find((t) => t.id === taskId);
-          if (!targetTask || targetTask.assigneeType !== 'mentor') {
+          // Mentor can only update tasks assigned to 'mentor' for other employees
+          if (targetTask.assigneeType !== 'mentor') {
             throw new NotFoundError('Resource not found', 'NOT_FOUND');
           }
         }
       } else if (req.user!.role === 'manager') {
-        const isAssignedMentor = existing.mentor?.userId === req.user!.userId;
-        const isOwnDepartment = req.user!.departmentId === existing.departmentId;
-
         if (!isOwnDepartment && !isAssignedMentor) {
           throw new NotFoundError('Resource not found', 'NOT_FOUND');
         }
 
         if (!isOwnDepartment && isAssignedMentor) {
-          const targetTask = existing.tasks.find((t) => t.id === taskId);
-          if (!targetTask || targetTask.assigneeType !== 'mentor') {
+          if (targetTask.assigneeType !== 'mentor') {
             throw new NotFoundError('Resource not found', 'NOT_FOUND');
           }
         }
       }
       // hr_admin has company-wide access
+
+      // Enforce assigneeType matching specifically when toggling task completion status:
+      if (validated.status !== undefined) {
+        if (targetTask.assigneeType === 'employee') {
+          // Only the employee the task belongs to may toggle it
+          if (!isOwnRecord) {
+            throw new ForbiddenError(
+              'Only the assigned employee can mark this task complete',
+              'WRONG_ASSIGNEE_TYPE'
+            );
+          }
+        } else if (targetTask.assigneeType === 'manager') {
+          // Only that employee's department manager may toggle it
+          if (!isOwnDepartment) {
+            throw new ForbiddenError(
+              'Only the assigned manager can mark this task complete',
+              'WRONG_ASSIGNEE_TYPE'
+            );
+          }
+        } else if (targetTask.assigneeType === 'mentor') {
+          // Only the employee's assigned mentor may toggle it
+          if (!isAssignedMentor) {
+            throw new ForbiddenError(
+              'Only the assigned mentor can mark this task complete',
+              'WRONG_ASSIGNEE_TYPE'
+            );
+          }
+        }
+      }
 
       const updatedTask = await employeeService.updateEmployeeTask(
         employeeId,

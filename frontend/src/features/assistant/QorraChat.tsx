@@ -232,7 +232,7 @@ export const QorraChat: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] max-w-4xl mx-auto w-full px-4 sm:px-6 select-text">
+    <div className="flex flex-col h-[calc(100vh-7rem)] max-w-4xl mx-auto w-full px-4 sm:px-6 select-text">
       {/* Top Header */}
       <div className="py-4 border-b border-white/[0.06] flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
@@ -248,7 +248,7 @@ export const QorraChat: React.FC = () => {
                 Grounded RAG
               </span>
             </div>
-            <p className="text-xs text-[#8a8f98]">
+            <p className="text-sm text-[#8a8f98]">
               Powered by company knowledge base • Zero hallucinations
             </p>
           </div>

@@ -39,3 +39,16 @@ npm run dev
 ```
 
 The server exposes a health-check endpoint at `GET /health` returning `{"status": "ok"}`.
+
+### Rate Limiting & Local Testing
+
+During manual multi-role testing (switching rapidly between HR Admin, Manager, and Employee roles), the login rate limiter (5 attempts / 15m) and general rate limiter (100 reqs / 15m) can be temporarily disabled:
+
+In `backend/.env`:
+```env
+DISABLE_RATE_LIMITING="true"
+```
+
+> [!WARNING]
+> `DISABLE_RATE_LIMITING` is strictly an opt-in escape hatch for **local development and testing only**. It must **NEVER** be set to `true` in any staging, production, or deployed environment per `security.md` Section 1 and Section 7. When active, a prominent warning banner is logged at server startup.
+

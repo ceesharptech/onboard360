@@ -116,7 +116,8 @@ export const DocumentManager: React.FC = () => {
       await fetchDocuments();
       toast.success("Document uploaded", `"${filename}" is now processing.`);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to upload document";
+      const msg =
+        err instanceof Error ? err.message : "Failed to upload document";
       setUploadError(msg);
       toast.error("Upload failed", msg);
     } finally {
@@ -143,9 +144,13 @@ export const DocumentManager: React.FC = () => {
       setTargetDoc(null);
       setReplaceFile(null);
       await fetchDocuments();
-      toast.success("Document replaced", `"${docName}" replaced and queued for reprocessing.`);
+      toast.success(
+        "Document replaced",
+        `"${docName}" replaced and queued for reprocessing.`,
+      );
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to replace document";
+      const msg =
+        err instanceof Error ? err.message : "Failed to replace document";
       setUploadError(msg);
       toast.error("Replacement failed", msg);
     } finally {
@@ -165,9 +170,13 @@ export const DocumentManager: React.FC = () => {
     try {
       await documentApi.delete(doc.id);
       await fetchDocuments();
-      toast.success("Document deleted", `"${doc.filename}" and its vector chunks were removed.`);
+      toast.success(
+        "Document deleted",
+        `"${doc.filename}" and its vector chunks were removed.`,
+      );
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to delete document";
+      const msg =
+        err instanceof Error ? err.message : "Failed to delete document";
       setError(msg);
       toast.error("Delete failed", msg);
     }
@@ -548,7 +557,7 @@ export const DocumentManager: React.FC = () => {
         maxWidth="md"
       >
         <form onSubmit={handleReplace} className="space-y-4">
-          <p className="text-xs text-[#8a8f98] m-0">
+          <p className="text-sm text-[#8a8f98] mb-2">
             Replacing this document will cascade-delete all existing chunks from
             the database and re-chunk the new file.
           </p>
