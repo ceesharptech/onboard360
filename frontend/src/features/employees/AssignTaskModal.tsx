@@ -7,11 +7,7 @@ import { Input } from "../../components/common/Input";
 import { Select } from "../../components/common/Select";
 import { Button } from "../../components/common/Button";
 import { MarkdownRenderer } from "../../components/common/MarkdownRenderer";
-import {
-  Plus,
-  Eye,
-  PencilSimple,
-} from "@phosphor-icons/react";
+import { Plus, Eye, PencilSimple } from "@phosphor-icons/react";
 
 export interface AssignTaskModalProps {
   isOpen: boolean;
@@ -94,16 +90,11 @@ export const AssignTaskModal: React.FC<AssignTaskModalProps> = ({
         description: description.trim() ? description.trim() : null,
       });
 
-      toast.success(
-        "Task Assigned",
-        `Assigned "${title}" to ${employeeName}`,
-      );
+      toast.success("Task Assigned", `Assigned "${title}" to ${employeeName}`);
       onTaskAssigned(newTask);
       handleClose();
     } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "Failed to assign task",
-      );
+      setError(err instanceof Error ? err.message : "Failed to assign task");
     } finally {
       setIsSubmitting(false);
     }
@@ -144,7 +135,7 @@ export const AssignTaskModal: React.FC<AssignTaskModalProps> = ({
         {/* Category & Assignee Type */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-[#d0d6e0] mb-1.5">
+            <label className="block text-sm font-medium text-[#d0d6e0] mb-1.5">
               Category
             </label>
             <input
@@ -183,7 +174,9 @@ export const AssignTaskModal: React.FC<AssignTaskModalProps> = ({
             label="Assignee Type"
             value={assigneeType}
             onChange={(e) =>
-              setAssigneeType(e.target.value as "employee" | "manager" | "mentor")
+              setAssigneeType(
+                e.target.value as "employee" | "manager" | "mentor",
+              )
             }
             options={[
               { value: "employee", label: "Employee (Self-Completion)" },
@@ -196,7 +189,7 @@ export const AssignTaskModal: React.FC<AssignTaskModalProps> = ({
         {/* Due Date & Task Link */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-[#d0d6e0] mb-1.5">
+            <label className="block text-sm font-medium text-[#d0d6e0] mb-1.5">
               Due Date (Specific Date)
             </label>
             <div className="relative">
