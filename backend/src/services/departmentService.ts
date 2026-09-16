@@ -15,10 +15,160 @@ export class DepartmentService {
           select: {
             employees: true,
             mentors: { where: { isActive: true } },
+            onboardingTemplates: true,
           },
         },
       },
     });
+  }
+
+  /**
+   * Get single department by ID scoped to company.
+   */
+  async getDepartmentById(id: string, companyId: string) {
+    const department = await prisma.department.findFirst({
+      where: { id, companyId },
+      include: {
+        _count: {
+          select: {
+            employees: true,
+            mentors: { where: { isActive: true } },
+            onboardingTemplates: true,
+          },
+        },
+      },
+    });
+
+    if (!department) {
+      throw new NotFoundError('Department not found in company scope', 'NOT_FOUND');
+    }
+
+    return department;
+  }
+
+  /**
+   * Create a new department within the authenticated HR Admin's company.
+   */
+  async createDepartment(companyId: string, name: string) {
+    const trimmedName = name.trim();
+    const existing = await prisma.department.findFirst({
+      where: {
+        companyId,
+        name: { equals: trimmedName, mode: 'insensitive' },
+      },
+    });
+
+    if (existing) {
+      throw new BadRequestError(
+        'Department with this name already exists in company',
+        'DEPARTMENT_ALREADY_EXISTS'
+      );
+    }
+
+    const department = await prisma.department.create({
+      data: {
+        companyId,
+        name: trimmedName,
+      },
+      include: {
+        _count: {
+          select: {
+            employees: true,
+            mentors: { where: { isActive: true } },
+            onboardingTemplates: true,
+          },
+        },
+      },
+    });
+
+    logger.info({ departmentId: department.id, name: department.name, companyId }, 'Department created');
+    return department;
+  }
+
+  /**
+   * Update / rename a department within the company.
+   */
+  async updateDepartment(id: string, companyId: string, name: string) {
+    const department = await prisma.department.findFirst({
+      where: { id, companyId },
+    });
+
+    if (!department) {
+      throw new NotFoundError('Department not found in company scope', 'NOT_FOUND');
+    }
+
+    const trimmedName = name.trim();
+    if (trimmedName.toLowerCase() !== department.name.toLowerCase()) {
+      const duplicate = await prisma.department.findFirst({
+        where: {
+          companyId,
+          id: { not: id },
+          name: { equals: trimmedName, mode: 'insensitive' },
+        },
+      });
+
+      if (duplicate) {
+        throw new BadRequestError(
+          'Department with this name already exists in company',
+          'DEPARTMENT_ALREADY_EXISTS'
+        );
+      }
+    }
+
+    const updated = await prisma.department.update({
+      where: { id },
+      data: { name: trimmedName },
+      include: {
+        _count: {
+          select: {
+            employees: true,
+            mentors: { where: { isActive: true } },
+            onboardingTemplates: true,
+          },
+        },
+      },
+    });
+
+    logger.info({ departmentId: id, newName: updated.name, companyId }, 'Department updated');
+    return updated;
+  }
+
+  /**
+   * Delete a department within the company.
+   * Rejects deletion if any employees, onboarding templates, mentors, or users are still assigned.
+   */
+  async deleteDepartment(id: string, companyId: string) {
+    const department = await prisma.department.findFirst({
+      where: { id, companyId },
+    });
+
+    if (!department) {
+      throw new NotFoundError('Department not found in company scope', 'NOT_FOUND');
+    }
+
+    const [employeesCount, templatesCount, mentorsCount, usersCount] = await Promise.all([
+      prisma.employee.count({ where: { departmentId: id, companyId } }),
+      prisma.onboardingTemplate.count({ where: { departmentId: id, companyId } }),
+      prisma.mentor.count({ where: { departmentId: id, companyId } }),
+      prisma.user.count({ where: { departmentId: id, companyId } }),
+    ]);
+
+    if (employeesCount > 0 || templatesCount > 0 || mentorsCount > 0 || usersCount > 0) {
+      const reasons: string[] = [];
+      if (employeesCount > 0) reasons.push(`${employeesCount} employee(s)`);
+      if (templatesCount > 0) reasons.push(`${templatesCount} onboarding template(s)`);
+      if (mentorsCount > 0) reasons.push(`${mentorsCount} mentor(s)`);
+      if (usersCount > 0 && employeesCount === 0) reasons.push(`${usersCount} department user(s)`);
+
+      throw new BadRequestError(
+        `Cannot delete department: it still has ${reasons.join(', ')} assigned. Please reassign or remove them first.`,
+        'DEPARTMENT_NOT_EMPTY'
+      );
+    }
+
+    await prisma.department.delete({ where: { id } });
+    logger.info({ departmentId: id, companyId }, 'Department deleted');
+    return { success: true, id };
   }
 
   /**

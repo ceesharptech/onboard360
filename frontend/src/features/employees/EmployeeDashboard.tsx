@@ -7,6 +7,7 @@ import { Card } from "../../components/common/Card";
 import { Badge } from "../../components/common/Badge";
 import { Modal } from "../../components/common/Modal";
 import { Button } from "../../components/common/Button";
+import { TaskDetailModal } from "../../components/common/TaskDetailModal";
 import {
   Clock,
   CalendarBlank,
@@ -33,6 +34,11 @@ export const EmployeeDashboard: React.FC = () => {
 
   // Mentee Full Roadmap Modal
   const [selectedMenteeRoadmap, setSelectedMenteeRoadmap] = useState<Employee | null>(null);
+
+  // Task Detail Modal (Phase 5.2)
+  const [selectedTask, setSelectedTask] = useState<EmployeeTask | null>(null);
+  const [isTaskDetailOpen, setIsTaskDetailOpen] = useState(false);
+  const [isTogglingDetailTask, setIsTogglingDetailTask] = useState(false);
 
   // Restricted Task Explanation Modal (Fix 1 Requirement)
   const [restrictedTaskNotice, setRestrictedTaskNotice] = useState<{
@@ -375,17 +381,10 @@ export const EmployeeDashboard: React.FC = () => {
                       <div
                         key={task.id}
                         onClick={() => {
-                          if (isEmployeeTask) {
-                            handleToggleTask(task);
-                          } else {
-                            handleRestrictedTaskClick(task);
-                          }
+                          setSelectedTask(task);
+                          setIsTaskDetailOpen(true);
                         }}
-                        className={`flex items-start justify-between p-3 rounded-lg border transition-all select-none ${
-                          isEmployeeTask
-                            ? "cursor-pointer group hover:border-white/[0.12] hover:bg-[#13151a]"
-                            : "cursor-default"
-                        } ${
+                        className={`flex items-start justify-between p-3 rounded-lg border transition-all select-none cursor-pointer group hover:border-white/[0.12] hover:bg-[#13151a] ${
                           isCompleted
                             ? "bg-[#0b0c0f]/60 border-white/[0.03] opacity-65"
                             : isEmployeeTask
@@ -768,6 +767,95 @@ export const EmployeeDashboard: React.FC = () => {
           </div>
         )}
       </Modal>
+
+      {/* Task Detail Modal with Rich Markdown Description (Phase 5.2) */}
+      <TaskDetailModal
+        isOpen={isTaskDetailOpen}
+        onClose={() => {
+          setIsTaskDetailOpen(false);
+          setSelectedTask(null);
+        }}
+        task={selectedTask}
+        canComplete={
+          selectedTask
+            ? activeTab === "mentees" || selectedMenteeRoadmap
+              ? selectedTask.assigneeType === "mentor"
+              : selectedTask.assigneeType === "employee"
+            : false
+        }
+        restrictionReason={
+          selectedTask &&
+          (activeTab === "mentees" || selectedMenteeRoadmap
+            ? selectedTask.assigneeType !== "mentor"
+              ? `This task is assigned to the ${selectedTask.assigneeType}. Only they can complete it.`
+              : undefined
+            : selectedTask.assigneeType !== "employee"
+              ? `This task is assigned to your ${
+                  selectedTask.assigneeType === "manager"
+                    ? "Department Manager"
+                    : "Assigned Mentor"
+                }. Only they have authorization to mark this task complete.`
+              : undefined)
+        }
+        onToggleComplete={async (taskToToggle) => {
+          setIsTogglingDetailTask(true);
+          try {
+            if (activeTab === "mentees" || selectedMenteeRoadmap) {
+              if (taskToToggle.assigneeType === "mentor") {
+                const menteeId =
+                  selectedMenteeRoadmap?.id ||
+                  menteeData?.mentees.find((m) =>
+                    m.mentorTasks.some((mt) => mt.id === taskToToggle.id)
+                  )?.id;
+                if (menteeId) {
+                  await handleToggleMentorTask(
+                    menteeId,
+                    taskToToggle.id,
+                    taskToToggle.status
+                  );
+                  setSelectedTask((prev) =>
+                    prev && prev.id === taskToToggle.id
+                      ? {
+                          ...prev,
+                          status:
+                            prev.status === "completed"
+                              ? "pending"
+                              : "completed",
+                          completedAt:
+                            prev.status === "completed"
+                              ? null
+                              : new Date().toISOString(),
+                        }
+                      : prev
+                  );
+                }
+              }
+            } else {
+              if (taskToToggle.assigneeType === "employee") {
+                await handleToggleTask(taskToToggle);
+                setSelectedTask((prev) =>
+                  prev && prev.id === taskToToggle.id
+                    ? {
+                        ...prev,
+                        status:
+                          prev.status === "completed"
+                            ? "pending"
+                            : "completed",
+                        completedAt:
+                          prev.status === "completed"
+                            ? null
+                            : new Date().toISOString(),
+                      }
+                    : prev
+                );
+              }
+            }
+          } finally {
+            setIsTogglingDetailTask(false);
+          }
+        }}
+        isToggling={isTogglingDetailTask}
+      />
     </div>
   );
 };

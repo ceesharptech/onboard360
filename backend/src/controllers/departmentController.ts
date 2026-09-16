@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import departmentService from '../services/departmentService';
-import { addMentorSchema } from '../utils/validation';
+import { addMentorSchema, createDepartmentSchema, updateDepartmentSchema } from '../utils/validation';
 import { scopeToDepartment } from '../middleware/auth';
 
 export class DepartmentController {
@@ -11,6 +11,63 @@ export class DepartmentController {
       res.status(200).json({
         status: 'ok',
         data: departments,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getById(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const departmentId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      const department = await departmentService.getDepartmentById(departmentId, req.user!.companyId);
+      res.status(200).json({
+        status: 'ok',
+        data: department,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async create(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const validated = createDepartmentSchema.parse(req.body);
+      const department = await departmentService.createDepartment(req.user!.companyId, validated.name);
+      res.status(201).json({
+        status: 'ok',
+        data: department,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async update(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const departmentId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      const validated = updateDepartmentSchema.parse(req.body);
+      const department = await departmentService.updateDepartment(
+        departmentId,
+        req.user!.companyId,
+        validated.name
+      );
+      res.status(200).json({
+        status: 'ok',
+        data: department,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async delete(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const departmentId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      const result = await departmentService.deleteDepartment(departmentId, req.user!.companyId);
+      res.status(200).json({
+        status: 'ok',
+        data: result,
       });
     } catch (error) {
       next(error);

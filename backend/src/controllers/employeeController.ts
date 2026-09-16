@@ -4,9 +4,10 @@ import {
   createEmployeeSchema,
   updateEmployeeSchema,
   updateEmployeeTaskSchema,
+  createAdHocTaskSchema,
   paginationQuerySchema,
 } from '../utils/validation';
-import { scopeToOwnEmployee } from '../middleware/auth';
+import { scopeToOwnEmployee, scopeToDepartment } from '../middleware/auth';
 import prisma from '../utils/prisma';
 import { ForbiddenError, NotFoundError } from '../utils/errors';
 
@@ -284,6 +285,34 @@ export class EmployeeController {
       res.status(200).json({
         status: 'ok',
         data: progress,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async createAdHocTask(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const id = getParam(req.params.id);
+      const validated = createAdHocTaskSchema.parse(req.body);
+
+      // Verify employee exists in company
+      const employee = await prisma.employee.findFirst({
+        where: { id, companyId: req.user!.companyId },
+      });
+
+      if (!employee) {
+        throw new NotFoundError('Employee not found', 'NOT_FOUND');
+      }
+
+      // Enforce department scope for managers (HR Admin bypasses)
+      scopeToDepartment(employee.departmentId, req);
+
+      const task = await employeeService.createAdHocTask(id, validated, req.user!.companyId);
+
+      res.status(201).json({
+        status: 'ok',
+        data: task,
       });
     } catch (error) {
       next(error);

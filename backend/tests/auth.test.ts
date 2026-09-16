@@ -171,6 +171,10 @@ describe('Auth Endpoints & Tokens (Phase 1)', () => {
   });
 
   describe('Rate Limiting', () => {
+    beforeEach(() => {
+      delete process.env.DISABLE_RATE_LIMITING;
+    });
+
     it('enforces login rate limiting on repeated failed attempts', async () => {
       const email = `ratelimit.${suffix}@test.com`;
 

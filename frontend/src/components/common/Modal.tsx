@@ -4,7 +4,7 @@ import { X } from "@phosphor-icons/react";
 export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  title: string;
+  title: React.ReactNode;
   children: React.ReactNode;
   maxWidth?: "sm" | "md" | "lg" | "xl";
 }

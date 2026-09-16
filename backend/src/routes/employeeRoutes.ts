@@ -55,4 +55,12 @@ router.get(
   (req, res, next) => employeeController.getProgress(req, res, next)
 );
 
+// Create ad-hoc task for employee (HR Admin company-wide, Manager own department)
+router.post(
+  '/:id/tasks',
+  authenticate,
+  requireRole('hr_admin', 'manager'),
+  (req, res, next) => employeeController.createAdHocTask(req, res, next)
+);
+
 export default router;

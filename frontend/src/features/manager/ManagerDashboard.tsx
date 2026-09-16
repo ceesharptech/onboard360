@@ -13,6 +13,8 @@ import { Button } from "../../components/common/Button";
 import { Badge } from "../../components/common/Badge";
 import { Modal } from "../../components/common/Modal";
 import { Select } from "../../components/common/Select";
+import { TaskDetailModal } from "../../components/common/TaskDetailModal";
+import { AssignTaskModal } from "../employees/AssignTaskModal";
 import {
   UsersThree,
   GitFork,
@@ -24,6 +26,7 @@ import {
   CheckSquare,
   Square,
   Link as LinkIcon,
+  Plus,
 } from "@phosphor-icons/react";
 
 export interface ManagerDashboardProps {
@@ -61,6 +64,22 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
   // Mentor reassign state
   const [newMentorId, setNewMentorId] = useState("");
   const [isUpdatingMentor, setIsUpdatingMentor] = useState(false);
+
+  // Task Detail Modal State (Phase 5.2)
+  const [taskDetailTarget, setTaskDetailTarget] = useState<EmployeeTask | null>(null);
+  const [isTaskDetailOpen, setIsTaskDetailOpen] = useState(false);
+
+  // Assign Ad-hoc Task Modal State (Phase 5.2)
+  const [assigneeTargetEmployee, setAssigneeTargetEmployee] = useState<Employee | null>(null);
+  const [isAssignTaskOpen, setIsAssignTaskOpen] = useState(false);
+
+  const handleAdHocTaskAssigned = async (newTask: EmployeeTask) => {
+    await fetchAllData();
+    if (selectedEmployee && selectedEmployee.id === newTask.employeeId) {
+      const refreshed = await employeeApi.getOne(selectedEmployee.id);
+      setSelectedEmployee(refreshed);
+    }
+  };
 
   const fetchAllData = async () => {
     setIsLoading(true);
@@ -375,14 +394,27 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                           </div>
                         </td>
                         <td className="py-3 px-4 text-right">
-                          <Button
-                            variant="utility"
-                            size="sm"
-                            icon={<ListBullets size={14} />}
-                            onClick={() => openDrilldown(emp)}
-                          >
-                            Inspect Tasks
-                          </Button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              icon={<Plus size={13} />}
+                              onClick={() => {
+                                setAssigneeTargetEmployee(emp);
+                                setIsAssignTaskOpen(true);
+                              }}
+                            >
+                              Assign Task
+                            </Button>
+                            <Button
+                              variant="utility"
+                              size="sm"
+                              icon={<ListBullets size={14} />}
+                              onClick={() => openDrilldown(emp)}
+                            >
+                              Inspect Tasks
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -451,10 +483,29 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                         )}
                       </button>
 
-                      <div className="min-w-0 flex-1">
+                      <div
+                        className="min-w-0 flex-1 cursor-pointer group/title"
+                        onClick={() => {
+                          setTaskDetailTarget({
+                            id: task.id,
+                            employeeId: task.employeeId,
+                            title: task.title,
+                            description: task.description,
+                            category: task.category,
+                            orderIndex: task.orderIndex,
+                            assigneeType: task.assigneeType,
+                            dueDate: task.dueDate,
+                            status: task.status,
+                            completedAt: task.completedAt,
+                            sourceTemplateTaskId: task.sourceTemplateTaskId,
+                            taskUrl: task.taskUrl,
+                          });
+                          setIsTaskDetailOpen(true);
+                        }}
+                      >
                         <div className="flex items-center gap-2">
                           <span
-                            className={`font-medium text-sm truncate ${isCompleted ? "line-through text-[#8a8f98]" : "text-white"}`}
+                            className={`font-medium text-sm truncate group-hover/title:text-indigo-300 transition-colors ${isCompleted ? "line-through text-[#8a8f98]" : "text-white"}`}
                           >
                             {task.title}
                           </span>
@@ -611,7 +662,14 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                                       )}
                                     </button>
                                     <span
-                                      className={`truncate font-medium ${isTaskDone ? "line-through text-[#8a8f98]" : "text-white"}`}
+                                      onClick={() => {
+                                        setTaskDetailTarget({
+                                          ...t,
+                                          employeeId: mentee.id,
+                                        } as any);
+                                        setIsTaskDetailOpen(true);
+                                      }}
+                                      className={`truncate font-medium cursor-pointer hover:text-indigo-300 transition-colors ${isTaskDone ? "line-through text-[#8a8f98]" : "text-white"}`}
                                     >
                                       {t.title}
                                     </span>
@@ -724,9 +782,23 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
 
             {/* Tasks List with Reassignment Controls */}
             <div className="space-y-2">
-              <span className="text-xs font-semibold uppercase tracking-wider text-[#8a8f98] block">
-                Assigned Tasks Checklist
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-[#8a8f98] block">
+                  Assigned Tasks Checklist
+                </span>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  icon={<Plus size={13} />}
+                  onClick={() => {
+                    setAssigneeTargetEmployee(selectedEmployee);
+                    setIsAssignTaskOpen(true);
+                  }}
+                >
+                  Assign Task
+                </Button>
+              </div>
 
               <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
                 {(selectedEmployee.tasks || []).map((task) => {
@@ -734,7 +806,11 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                   return (
                     <div
                       key={task.id}
-                      className="p-2.5 bg-[#0a0b0e] border border-white/[0.06] rounded-lg flex items-center justify-between gap-3 text-xs"
+                      onClick={() => {
+                        setTaskDetailTarget(task);
+                        setIsTaskDetailOpen(true);
+                      }}
+                      className="p-2.5 bg-[#0a0b0e] border border-white/[0.06] hover:border-white/[0.15] rounded-lg flex items-center justify-between gap-3 text-xs cursor-pointer group transition-colors"
                     >
                       <div className="flex items-center gap-2.5">
                         <span
@@ -761,7 +837,10 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                       </div>
 
                       {/* Reassign Dropdown & Task Link */}
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div
+                        className="flex items-center gap-2 shrink-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         {task.taskUrl && (
                           <a
                             href={task.taskUrl}
@@ -886,9 +965,18 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                         <Clock size={17} className="text-[#62666d] shrink-0" />
                       )}
 
-                      <div>
+                      <div
+                        className="cursor-pointer"
+                        onClick={() => {
+                          setTaskDetailTarget({
+                            ...t,
+                            employeeId: menteeRoadmap.id,
+                          } as any);
+                          setIsTaskDetailOpen(true);
+                        }}
+                      >
                         <div
-                          className={`font-medium ${isDone ? "line-through text-[#8a8f98]" : "text-white"}`}
+                          className={`font-medium hover:text-indigo-300 transition-colors ${isDone ? "line-through text-[#8a8f98]" : "text-white"}`}
                         >
                           {t.title}
                         </div>
@@ -938,6 +1026,63 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
           </div>
         )}
       </Modal>
+
+      {/* Task Detail Modal (Phase 5.2) */}
+      <TaskDetailModal
+        isOpen={isTaskDetailOpen}
+        onClose={() => {
+          setIsTaskDetailOpen(false);
+          setTaskDetailTarget(null);
+        }}
+        task={taskDetailTarget}
+        canComplete={
+          taskDetailTarget
+            ? taskDetailTarget.assigneeType === "manager" ||
+              (taskDetailTarget.assigneeType === "mentor" && Boolean(menteeData?.isMentor))
+            : false
+        }
+        restrictionReason="You can only mark tasks complete if they are assigned to your role (manager or mentor)."
+        onToggleComplete={async (t) => {
+          if (t.employeeId) {
+            await handleToggleTaskStatus(t.employeeId, t.id, t.status);
+            setTaskDetailTarget((prev) =>
+              prev && prev.id === t.id
+                ? {
+                    ...prev,
+                    status: prev.status === "completed" ? "pending" : "completed",
+                    completedAt:
+                      prev.status === "completed"
+                        ? null
+                        : new Date().toISOString(),
+                  }
+                : prev,
+            );
+          }
+        }}
+      />
+
+      {/* Assign Task Modal (Phase 5.2) */}
+      {assigneeTargetEmployee && (
+        <AssignTaskModal
+          isOpen={isAssignTaskOpen}
+          onClose={() => {
+            setIsAssignTaskOpen(false);
+            setAssigneeTargetEmployee(null);
+          }}
+          employeeId={assigneeTargetEmployee.id}
+          employeeName={assigneeTargetEmployee.name}
+          existingCategories={
+            assigneeTargetEmployee.tasks
+              ? Array.from(
+                  new Set(
+                    assigneeTargetEmployee.tasks.map((t) => t.category),
+                  ),
+                )
+              : []
+          }
+          onTaskAssigned={handleAdHocTaskAssigned}
+        />
+      )}
     </div>
   );
 };

@@ -85,6 +85,14 @@ export const updateTemplateSchema = z.object({
   tasks: z.array(templateTaskSchema).optional(),
 });
 
+export const createDepartmentSchema = z.object({
+  name: z.string().trim().min(1, 'Department name is required').max(100, 'Department name must not exceed 100 characters'),
+});
+
+export const updateDepartmentSchema = z.object({
+  name: z.string().trim().min(1, 'Department name is required').max(100, 'Department name must not exceed 100 characters'),
+});
+
 export const reorderTemplateTasksSchema = z.object({
   taskIds: z.array(z.string().uuid()).min(1, 'At least one taskId is required'),
 });
@@ -108,6 +116,7 @@ export const createEmployeeSchema = z
       .optional()
       .nullable(),
     mentorId: z.string().uuid().optional().nullable(),
+    templateId: z.string().uuid().optional().nullable(),
   })
   .superRefine((data, ctx) => {
     if (data.role !== 'hr_admin') {
@@ -162,6 +171,35 @@ export const paginationQuerySchema = z.object({
   departmentId: z.string().uuid().optional(),
 });
 
+export const createAdHocTaskSchema = z.object({
+  title: z.string().trim().min(1, 'Task title is required').max(200),
+  description: z.string().trim().optional().nullable(),
+  category: z.string().trim().min(1).max(100).default('General'),
+  assigneeType: z
+    .enum(['employee', 'manager', 'mentor'], {
+      errorMap: () => ({ message: "assigneeType must be 'employee', 'manager', or 'mentor'" }),
+    })
+    .default('employee'),
+  dueDate: z
+    .string()
+    .trim()
+    .optional()
+    .nullable()
+    .transform((val) => (val && val.length > 0 ? val : null))
+    .refine((val) => !val || !isNaN(Date.parse(val)), {
+      message: 'dueDate must be a valid date',
+    }),
+  taskUrl: z
+    .string()
+    .trim()
+    .optional()
+    .nullable()
+    .transform((val) => (val && val.length > 0 ? val : null))
+    .refine((val) => !val || z.string().url().safeParse(val).success, {
+      message: 'taskUrl must be a valid URL',
+    }),
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RefreshInput = z.infer<typeof refreshSchema>;
 export type LogoutInput = z.infer<typeof logoutSchema>;
@@ -175,4 +213,5 @@ export type ReorderTemplateTasksInput = z.infer<typeof reorderTemplateTasksSchem
 export type CreateEmployeeInput = z.infer<typeof createEmployeeSchema>;
 export type UpdateEmployeeInput = z.infer<typeof updateEmployeeSchema>;
 export type UpdateEmployeeTaskInput = z.infer<typeof updateEmployeeTaskSchema>;
+export type CreateAdHocTaskInput = z.infer<typeof createAdHocTaskSchema>;
 export type PaginationQueryInput = z.infer<typeof paginationQuerySchema>;

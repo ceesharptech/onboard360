@@ -20,7 +20,10 @@ import {
   PencilSimple,
   GitFork,
   Link as LinkIcon,
+  Eye,
+  EyeSlash,
 } from "@phosphor-icons/react";
+import { MarkdownRenderer } from "../../components/common/MarkdownRenderer";
 
 export const TemplateBuilder: React.FC = () => {
   const { user } = useAuth();
@@ -39,6 +42,14 @@ export const TemplateBuilder: React.FC = () => {
   const [departmentId, setDepartmentId] = useState("");
   const [isDefault, setIsDefault] = useState(false);
   const [tasks, setTasks] = useState<TemplateTask[]>([]);
+  const [previewDescIndices, setPreviewDescIndices] = useState<Record<number, boolean>>({});
+
+  const togglePreviewDesc = (index: number) => {
+    setPreviewDescIndices((prev) => ({
+      ...prev,
+      [index]: !prev[index],
+    }));
+  };
   const [isSaving, setIsSaving] = useState(false);
 
   const fetchTemplates = async () => {
@@ -464,22 +475,55 @@ export const TemplateBuilder: React.FC = () => {
                       />
                     </div>
 
-                    <div className="sm:col-span-2">
-                      <input
-                        placeholder="Description (optional)"
-                        value={task.description || ""}
-                        onChange={(e) =>
-                          handleUpdateTaskField(
-                            index,
-                            "description",
-                            e.target.value,
-                          )
-                        }
-                        className="w-full bg-[#14161a] border border-white/[0.08] focus:border-white/30 text-xs text-[#f7f8f8] rounded-md px-2.5 py-1.5 focus:outline-none"
-                      />
+                    <div className="sm:col-span-3 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-[#5a5e6b]">
+                          Supports Markdown: <span className="font-mono text-[#8a8f98]">**bold**</span>, <span className="italic text-[#8a8f98]">_italic_</span>, <span className="font-mono text-[#8a8f98]">`code`</span>, <span className="text-[#8a8f98]">[link](url)</span>, lists
+                        </span>
+                        {task.description && (
+                          <button
+                            type="button"
+                            onClick={() => togglePreviewDesc(index)}
+                            className="text-[10px] text-[#8a8f98] hover:text-white flex items-center gap-1 cursor-pointer transition-colors px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/[0.06]"
+                          >
+                            {previewDescIndices[index] ? (
+                              <>
+                                <EyeSlash size={11} />
+                                <span>Edit</span>
+                              </>
+                            ) : (
+                              <>
+                                <Eye size={11} />
+                                <span>Preview</span>
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
+
+                      {previewDescIndices[index] && task.description ? (
+                        <div className="p-2.5 rounded-md bg-[#14161a] border border-white/[0.08] min-h-[60px] text-xs">
+                          <MarkdownRenderer content={task.description} />
+                        </div>
+                      ) : (
+                        <textarea
+                          rows={2}
+                          placeholder="Task instructions & description (Markdown supported)..."
+                          value={task.description || ""}
+                          onChange={(e) =>
+                            handleUpdateTaskField(
+                              index,
+                              "description",
+                              e.target.value
+                            )
+                          }
+                          className="w-full bg-[#14161a] border border-white/[0.08] focus:border-white/30 text-xs text-[#f7f8f8] rounded-md px-2.5 py-1.5 focus:outline-none resize-y min-h-[50px]"
+                        />
+                      )}
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="sm:col-span-2 flex items-center gap-2">
+                      <label className="text-[10px] text-[#5a5e6b] shrink-0">Assignee:</label>
                       <select
                         value={task.assigneeType}
                         onChange={(e) =>
@@ -495,25 +539,26 @@ export const TemplateBuilder: React.FC = () => {
                         <option value="manager">Manager</option>
                         <option value="mentor">Mentor</option>
                       </select>
+                    </div>
 
-                      <div className="flex items-center gap-1 shrink-0">
-                        <span className="text-[11px] text-[#5a5e6b]">+</span>
-                        <input
-                          type="number"
-                          min="0"
-                          title="Due offset in days"
-                          value={task.dueOffsetDays}
-                          onChange={(e) =>
-                            handleUpdateTaskField(
-                              index,
-                              "dueOffsetDays",
-                              Number(e.target.value),
-                            )
-                          }
-                          className="w-12 bg-[#14161a] border border-white/[0.08] text-xs text-[#f7f8f8] rounded-md px-1.5 py-1.5 text-center font-mono focus:outline-none"
-                        />
-                        <span className="text-[11px] text-[#5a5e6b]">d</span>
-                      </div>
+                    <div className="flex items-center gap-1.5 shrink-0 justify-end">
+                      <label className="text-[10px] text-[#5a5e6b] shrink-0">Due in:</label>
+                      <span className="text-[11px] text-[#5a5e6b]">+</span>
+                      <input
+                        type="number"
+                        min="0"
+                        title="Due offset in days after employee start date"
+                        value={task.dueOffsetDays}
+                        onChange={(e) =>
+                          handleUpdateTaskField(
+                            index,
+                            "dueOffsetDays",
+                            Number(e.target.value),
+                          )
+                        }
+                        className="w-12 bg-[#14161a] border border-white/[0.08] text-xs text-[#f7f8f8] rounded-md px-1.5 py-1.5 text-center font-mono focus:outline-none"
+                      />
+                      <span className="text-[11px] text-[#5a5e6b]">days</span>
                     </div>
 
                     <div className="sm:col-span-3">

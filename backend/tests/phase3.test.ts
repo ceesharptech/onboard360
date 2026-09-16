@@ -195,6 +195,9 @@ startxref
         },
       ];
 
+      // Allow async background processor to finish if running before clearing and inserting test chunks
+      await new Promise((r) => setTimeout(r, 200));
+
       // Clear any chunks that async background processor might have inserted, then store manual test chunks
       await vectorSearchService.deleteDocumentChunks(createdDocId);
       await vectorSearchService.storeDocumentChunks(
@@ -237,6 +240,9 @@ startxref
 
       expect(replaceRes.status).toBe(200);
       expect(replaceRes.body.document.filename).toBe('leave_policy_v2.pdf');
+
+      // Allow async background processor to finish before asserting chunk counts
+      await new Promise((r) => setTimeout(r, 200));
 
       // Clear any chunks that async background processor might have inserted, then verify count is 0
       await vectorSearchService.deleteDocumentChunks(createdDocId);

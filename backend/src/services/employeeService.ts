@@ -1,6 +1,11 @@
 import prisma from '../utils/prisma';
 import { NotFoundError, BadRequestError } from '../utils/errors';
-import { CreateEmployeeInput, UpdateEmployeeInput, UpdateEmployeeTaskInput } from '../utils/validation';
+import {
+  CreateEmployeeInput,
+  UpdateEmployeeInput,
+  UpdateEmployeeTaskInput,
+  CreateAdHocTaskInput,
+} from '../utils/validation';
 import mentorService from './mentorService';
 import logger from '../utils/logger';
 import { hashPassword } from '../utils/password';
@@ -95,44 +100,81 @@ export class EmployeeService {
       throw new NotFoundError('Department not found in company', 'NOT_FOUND');
     }
 
-    // 1. Template matching with fallback
-    // Try exact role + department match
-    let matchedTemplate = await prisma.onboardingTemplate.findFirst({
-      where: {
-        companyId,
-        departmentId: data.departmentId,
-        jobRole: data.jobRole ? { equals: data.jobRole, mode: 'insensitive' } : undefined,
-      },
-      include: {
-        tasks: { orderBy: { orderIndex: 'asc' } },
-      },
-    });
+    // Validate managerId if provided (must be an existing user in same company with role='manager')
+    if (data.managerId) {
+      const managerUser = await prisma.user.findFirst({
+        where: {
+          id: data.managerId,
+          companyId,
+          role: 'manager',
+        },
+      });
 
-    // Fallback 1: department-level default template
-    if (!matchedTemplate) {
+      if (!managerUser) {
+        throw new BadRequestError(
+          'Selected manager must be an existing user with the manager role in the company',
+          'INVALID_MANAGER'
+        );
+      }
+    }
+
+    // 1. Template selection: explicit templateId override OR automatic template matching with fallback
+    let matchedTemplate: any = null;
+
+    if (data.templateId) {
+      matchedTemplate = await prisma.onboardingTemplate.findFirst({
+        where: {
+          id: data.templateId,
+          companyId,
+        },
+        include: {
+          tasks: { orderBy: { orderIndex: 'asc' } },
+        },
+      });
+
+      if (!matchedTemplate) {
+        throw new NotFoundError('Selected onboarding template not found in company', 'NOT_FOUND');
+      }
+    } else {
+      // Automatic template matching (Phase 2 behavior)
+      // Try exact role + department match
       matchedTemplate = await prisma.onboardingTemplate.findFirst({
         where: {
           companyId,
           departmentId: data.departmentId,
-          isDefault: true,
+          jobRole: data.jobRole ? { equals: data.jobRole, mode: 'insensitive' } : undefined,
         },
         include: {
           tasks: { orderBy: { orderIndex: 'asc' } },
         },
       });
-    }
 
-    // Fallback 2: company-level default template (any department)
-    if (!matchedTemplate) {
-      matchedTemplate = await prisma.onboardingTemplate.findFirst({
-        where: {
-          companyId,
-          isDefault: true,
-        },
-        include: {
-          tasks: { orderBy: { orderIndex: 'asc' } },
-        },
-      });
+      // Fallback 1: department-level default template
+      if (!matchedTemplate) {
+        matchedTemplate = await prisma.onboardingTemplate.findFirst({
+          where: {
+            companyId,
+            departmentId: data.departmentId,
+            isDefault: true,
+          },
+          include: {
+            tasks: { orderBy: { orderIndex: 'asc' } },
+          },
+        });
+      }
+
+      // Fallback 2: company-level default template (any department)
+      if (!matchedTemplate) {
+        matchedTemplate = await prisma.onboardingTemplate.findFirst({
+          where: {
+            companyId,
+            isDefault: true,
+          },
+          include: {
+            tasks: { orderBy: { orderIndex: 'asc' } },
+          },
+        });
+      }
     }
 
     // 2. Mentor assignment (round-robin / least-loaded from department pool unless specified)
@@ -276,9 +318,18 @@ export class EmployeeService {
     });
     const mentorMap = new Map(mentors.map((m) => [m.id, m]));
 
+    // Fetch manager user details if managerId is present
+    const managerIds = employees.map((e) => e.managerId).filter((id): id is string => Boolean(id));
+    const managers = await prisma.user.findMany({
+      where: { id: { in: managerIds }, companyId },
+      select: { id: true, email: true },
+    });
+    const managerMap = new Map(managers.map((m) => [m.id, m]));
+
     const enrichedEmployees = employees.map((emp) => {
       const progress = this.calculateProgress(emp.tasks);
       const mentor = emp.mentorId ? mentorMap.get(emp.mentorId) ?? null : null;
+      const manager = emp.managerId ? managerMap.get(emp.managerId) ?? null : null;
       return {
         id: emp.id,
         name: emp.name,
@@ -290,6 +341,7 @@ export class EmployeeService {
         department: emp.department,
         userId: emp.userId,
         managerId: emp.managerId,
+        manager: manager ? { id: manager.id, email: manager.email } : null,
         mentorId: emp.mentorId,
         mentor: mentor ? { id: mentor.id, email: mentor.user.email } : null,
         createdAt: emp.createdAt,
@@ -336,10 +388,22 @@ export class EmployeeService {
       }
     }
 
+    let manager: { id: string; email: string } | null = null;
+    if (employee.managerId) {
+      const managerUser = await prisma.user.findFirst({
+        where: { id: employee.managerId, companyId },
+        select: { id: true, email: true },
+      });
+      if (managerUser) {
+        manager = { id: managerUser.id, email: managerUser.email };
+      }
+    }
+
     const progress = this.calculateProgress(employee.tasks);
 
     return {
       ...employee,
+      manager,
       mentor,
       progress,
     };
@@ -363,6 +427,18 @@ export class EmployeeService {
       });
       if (!dept) {
         throw new NotFoundError('Department not found', 'NOT_FOUND');
+      }
+    }
+
+    if (data.managerId !== undefined && data.managerId !== null) {
+      const managerUser = await prisma.user.findFirst({
+        where: { id: data.managerId, companyId, role: 'manager' },
+      });
+      if (!managerUser) {
+        throw new BadRequestError(
+          'Selected manager must be an existing user with the manager role in the company',
+          'INVALID_MANAGER'
+        );
       }
     }
 
@@ -559,6 +635,51 @@ export class EmployeeService {
       isMentor: true,
       mentees: enrichedMentees,
     };
+  }
+
+  /**
+   * Assign an ad-hoc task to an employee (additive, no source_template_task_id).
+   */
+  async createAdHocTask(employeeId: string, input: CreateAdHocTaskInput, companyId: string) {
+    const employee = await prisma.employee.findFirst({
+      where: { id: employeeId, companyId },
+    });
+
+    if (!employee) {
+      throw new NotFoundError('Employee not found', 'NOT_FOUND');
+    }
+
+    // Determine next orderIndex
+    const lastTask = await prisma.employeeTask.findFirst({
+      where: { employeeId },
+      orderBy: { orderIndex: 'desc' },
+      select: { orderIndex: true },
+    });
+
+    const nextOrderIndex = lastTask ? lastTask.orderIndex + 1 : 0;
+
+    const task = await prisma.employeeTask.create({
+      data: {
+        employeeId,
+        title: input.title,
+        description: input.description ?? null,
+        category: input.category || 'General',
+        orderIndex: nextOrderIndex,
+        assigneeType: input.assigneeType,
+        dueDate: input.dueDate ? new Date(input.dueDate) : null,
+        status: 'pending',
+        completedAt: null,
+        sourceTemplateTaskId: null,
+        taskUrl: input.taskUrl ?? null,
+      },
+    });
+
+    logger.info(
+      { employeeId, taskId: task.id, title: task.title, assigneeType: task.assigneeType },
+      'Ad-hoc task created for employee'
+    );
+
+    return task;
   }
 }
 

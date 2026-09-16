@@ -16,6 +16,7 @@ export interface Department {
   _count?: {
     employees: number;
     mentors: number;
+    onboardingTemplates?: number;
   };
 }
 
@@ -131,6 +132,7 @@ export interface Employee {
   department: { id: string; name: string };
   userId: string | null;
   managerId: string | null;
+  manager?: { id: string; email: string } | null;
   mentorId: string | null;
   mentor: { id: string; email: string } | null;
   tasks?: EmployeeTask[];
@@ -185,6 +187,21 @@ export const userApi = {
 
 export const departmentApi = {
   list: () => apiRequest<Department[]>('/departments'),
+  getOne: (id: string) => apiRequest<Department>(`/departments/${id}`),
+  create: (name: string) =>
+    apiRequest<Department>('/departments', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    }),
+  update: (id: string, name: string) =>
+    apiRequest<Department>(`/departments/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ name }),
+    }),
+  delete: (id: string) =>
+    apiRequest<{ success: boolean; id?: string }>(`/departments/${id}`, {
+      method: 'DELETE',
+    }),
   getMentors: (departmentId: string) => apiRequest<Mentor[]>(`/departments/${departmentId}/mentors`),
   addMentor: (departmentId: string, userId: string) =>
     apiRequest<Mentor>(`/departments/${departmentId}/mentors`, {
@@ -246,6 +263,7 @@ export const employeeApi = {
     employmentType?: 'full_time' | 'part_time' | 'contract' | null;
     managerId?: string | null;
     mentorId?: string | null;
+    templateId?: string | null;
   }) =>
     apiRequest<Employee>('/employees', {
       method: 'POST',
@@ -271,6 +289,21 @@ export const employeeApi = {
     apiRequest<ManagerAssignedTask[]>('/employees/manager/assigned-tasks'),
   getMyMentees: () =>
     apiRequest<MyMenteeResponse>('/employees/mentor/my-mentees'),
+  createAdHocTask: (
+    employeeId: string,
+    data: {
+      title: string;
+      description?: string | null;
+      category?: string;
+      assigneeType?: 'employee' | 'manager' | 'mentor';
+      dueDate?: string | null;
+      taskUrl?: string | null;
+    }
+  ) =>
+    apiRequest<EmployeeTask>(`/employees/${employeeId}/tasks`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };
 
 export interface DocumentItem {

@@ -19,6 +19,7 @@ import { Modal } from "../../components/common/Modal";
 import { Input } from "../../components/common/Input";
 import { Select } from "../../components/common/Select";
 import { useToast } from "../../context/ToastContext";
+import { EmployeeDetailModal } from "./EmployeeDetailModal";
 import {
   UserPlus,
   Buildings,
@@ -35,6 +36,7 @@ import {
   CheckCircle,
   Clock,
   Link as LinkIcon,
+  PencilSimple,
 } from "@phosphor-icons/react";
 
 export interface HrAdminDashboardProps {
@@ -75,6 +77,22 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
   >("full_time");
   const [isCreatingEmployee, setIsCreatingEmployee] = useState(false);
 
+  // New Employee Manager & Template Selection State
+  const [empManagerId, setEmpManagerId] = useState("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState("auto");
+
+  // Department CRUD State
+  const [isDeptModalOpen, setIsDeptModalOpen] = useState(false);
+  const [deptName, setDeptName] = useState("");
+  const [isCreatingDept, setIsCreatingDept] = useState(false);
+
+  const [editingDept, setEditingDept] = useState<Department | null>(null);
+  const [editDeptName, setEditDeptName] = useState("");
+  const [isUpdatingDept, setIsUpdatingDept] = useState(false);
+
+  const [deletingDept, setDeletingDept] = useState<Department | null>(null);
+  const [isDeletingDept, setIsDeletingDept] = useState(false);
+
   // Add Mentor Modal State
   const [isMentorModalOpen, setIsMentorModalOpen] = useState(false);
   const [targetDeptId, setTargetDeptId] = useState("");
@@ -86,6 +104,10 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
 
   // View Mentee Roadmap Modal State
   const [selectedMentee, setSelectedMentee] = useState<Employee | null>(null);
+
+  // Employee Detail View State (Phase 5.2)
+  const [detailEmployeeId, setDetailEmployeeId] = useState<string | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   const generateTempPassword = () => {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
@@ -209,6 +231,13 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
         jobRole: empAppRole === "hr_admin" ? null : empRole,
         startDate: empAppRole === "hr_admin" ? null : empStartDate,
         employmentType: empAppRole === "hr_admin" ? null : empType,
+        managerId: empAppRole === "hr_admin" ? null : (empManagerId || null),
+        templateId:
+          empAppRole === "hr_admin"
+            ? null
+            : selectedTemplateId && selectedTemplateId !== "auto"
+            ? selectedTemplateId
+            : null,
       });
 
       toast.success(
@@ -222,6 +251,8 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
       setEmpRole("");
       setEmpInitialPassword("");
       setEmpAppRole("employee");
+      setEmpManagerId("");
+      setSelectedTemplateId("auto");
       loadData();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to create employee";
@@ -229,6 +260,59 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
       toast.error("Failed to create account", msg);
     } finally {
       setIsCreatingEmployee(false);
+    }
+  };
+
+  const handleCreateDepartment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!deptName.trim()) return;
+
+    setIsCreatingDept(true);
+    try {
+      await departmentApi.create(deptName.trim());
+      toast.success("Department created", `Successfully created ${deptName.trim()}`);
+      setIsDeptModalOpen(false);
+      setDeptName("");
+      loadData();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to create department";
+      toast.error("Failed to create department", msg);
+    } finally {
+      setIsCreatingDept(false);
+    }
+  };
+
+  const handleUpdateDepartment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingDept || !editDeptName.trim()) return;
+
+    setIsUpdatingDept(true);
+    try {
+      await departmentApi.update(editingDept.id, editDeptName.trim());
+      toast.success("Department updated", `Successfully renamed department to ${editDeptName.trim()}`);
+      setEditingDept(null);
+      setEditDeptName("");
+      loadData();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to update department";
+      toast.error("Failed to update department", msg);
+    } finally {
+      setIsUpdatingDept(false);
+    }
+  };
+
+  const handleDeleteDepartment = async (dept: Department) => {
+    setIsDeletingDept(true);
+    try {
+      await departmentApi.delete(dept.id);
+      toast.success("Department deleted", `Successfully removed ${dept.name}`);
+      setDeletingDept(null);
+      loadData();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to delete department";
+      toast.error("Cannot delete department", msg);
+    } finally {
+      setIsDeletingDept(false);
     }
   };
 
@@ -299,19 +383,31 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
               Add Employee / User
             </Button>
           ) : (
-            <Button
-              variant="primary"
-              icon={<Plus size={15} />}
-              onClick={() => {
-                const firstDept = departments[0]?.id || "";
-                setTargetDeptId(firstDept);
-                const firstUser = users.find((u) => !u.departmentId || u.departmentId === firstDept);
-                setMentorUserId(firstUser?.id || users[0]?.id || "");
-                setIsMentorModalOpen(true);
-              }}
-            >
-              Add Mentor
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="primary"
+                icon={<Buildings size={15} />}
+                onClick={() => {
+                  setDeptName("");
+                  setIsDeptModalOpen(true);
+                }}
+              >
+                New Department
+              </Button>
+              <Button
+                variant="utility"
+                icon={<Plus size={15} />}
+                onClick={() => {
+                  const firstDept = departments[0]?.id || "";
+                  setTargetDeptId(firstDept);
+                  const firstUser = users.find((u) => !u.departmentId || u.departmentId === firstDept);
+                  setMentorUserId(firstUser?.id || users[0]?.id || "");
+                  setIsMentorModalOpen(true);
+                }}
+              >
+                Add Mentor
+              </Button>
+            </div>
           )}
         </div>
       </div>
@@ -363,8 +459,9 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
                   <th className="py-3 px-4">Employee</th>
                   <th className="py-3 px-4">Department</th>
                   <th className="py-3 px-4">Role</th>
-                  <th className="py-3 px-4">Start Date</th>
+                  <th className="py-3 px-4">Manager</th>
                   <th className="py-3 px-4">Assigned Mentor</th>
+                  <th className="py-3 px-4">Start Date</th>
                   <th className="py-3 px-4">Progress</th>
                 </tr>
               </thead>
@@ -377,7 +474,12 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
                   return (
                     <tr
                       key={emp.id}
-                      className="hover:bg-[#14161a]/60 transition-colors"
+                      onClick={() => {
+                        setDetailEmployeeId(emp.id);
+                        setIsDetailModalOpen(true);
+                      }}
+                      className="hover:bg-[#14161a]/80 transition-colors cursor-pointer group"
+                      title="Click to view full onboarding roadmap & assign tasks"
                     >
                       <td className="py-3.5 px-4">
                         <div className="font-medium text-white">{emp.name}</div>
@@ -394,7 +496,13 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-[#8a8f98]">
-                        {emp.startDate ? new Date(emp.startDate).toLocaleDateString() : "N/A"}
+                        {emp.manager ? (
+                          <span className="text-white/90 font-medium">
+                            {emp.manager.email}
+                          </span>
+                        ) : (
+                          <span className="text-[#565964]">None</span>
+                        )}
                       </td>
                       <td className="py-3.5 px-4 text-[#8a8f98]">
                         {emp.mentor ? (
@@ -404,6 +512,9 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
                         ) : (
                           <span className="text-[#565964]">Unassigned</span>
                         )}
+                      </td>
+                      <td className="py-3.5 px-4 text-[#8a8f98]">
+                        {emp.startDate ? new Date(emp.startDate).toLocaleDateString() : "N/A"}
                       </td>
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-2 max-w-[130px]">
@@ -430,22 +541,62 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
         </Card>
       ) : (
         /* Departments & Mentor Pools */
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {departments.map((dept) => {
-            const mentors = departmentMentors[dept.id] || [];
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3 pb-1">
+            <div>
+              <h3 className="text-sm font-semibold text-white m-0">Departments & Org Structure</h3>
+              <p className="text-xs text-[#8a8f98] mt-0.5 m-0">Manage company departments and configure mentor pools</p>
+            </div>
+            <Button
+              variant="utility"
+              size="sm"
+              icon={<Plus size={13} />}
+              onClick={() => {
+                setDeptName("");
+                setIsDeptModalOpen(true);
+              }}
+            >
+              Add Department
+            </Button>
+          </div>
 
-            return (
-              <Card key={dept.id} className="p-5 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between pb-3 border-b border-white/[0.06] mb-4">
-                    <div className="flex items-center gap-2">
-                      <Buildings size={17} className="text-white/80" />
-                      <h3 className="text-sm font-semibold text-white m-0">
-                        {dept.name}
-                      </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {departments.map((dept) => {
+              const mentors = departmentMentors[dept.id] || [];
+
+              return (
+                <Card key={dept.id} className="p-5 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between pb-3 border-b border-white/[0.06] mb-4">
+                      <div className="flex items-center gap-2">
+                        <Buildings size={17} className="text-white/80" />
+                        <h3 className="text-sm font-semibold text-white m-0">
+                          {dept.name}
+                        </h3>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Badge variant="purple">{mentors.length} Mentors</Badge>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingDept(dept);
+                            setEditDeptName(dept.name);
+                          }}
+                          className="p-1.5 rounded text-[#8a8f98] hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
+                          title="Rename department"
+                        >
+                          <PencilSimple size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeletingDept(dept)}
+                          className="p-1.5 rounded text-[#8a8f98] hover:text-[#f87171] hover:bg-red-500/10 transition-colors cursor-pointer"
+                          title="Delete department"
+                        >
+                          <Trash size={14} />
+                        </button>
+                      </div>
                     </div>
-                    <Badge variant="purple">{mentors.length} Mentors</Badge>
-                  </div>
 
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-[#62666d] block mb-2">
                     Active Mentor Pool
@@ -568,6 +719,7 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
               </Card>
             );
           })}
+          </div>
         </div>
       )}
 
@@ -742,31 +894,97 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
                 />
               </div>
 
+              {/* Manager Dropdown */}
+              <Select
+                label="Reporting Manager (Optional)"
+                value={empManagerId}
+                onChange={(e) => setEmpManagerId(e.target.value)}
+                options={[
+                  { value: "", label: "No manager assigned (optional)" },
+                  ...users
+                    .filter((u) => u.role === "manager")
+                    .map((u) => {
+                      const isSameDept = u.departmentId === empDeptId;
+                      const uDept = departments.find((d) => d.id === u.departmentId);
+                      const deptSuffix = isSameDept
+                        ? " (Department Manager)"
+                        : uDept
+                        ? ` (${uDept.name})`
+                        : "";
+                      return {
+                        value: u.id,
+                        label: `${u.email}${deptSuffix}`,
+                      };
+                    }),
+                ]}
+              />
+
+              {/* Template Selector (Auto-match with manual override) */}
+              <Select
+                label="Onboarding Template"
+                value={selectedTemplateId}
+                onChange={(e) => setSelectedTemplateId(e.target.value)}
+                options={[
+                  {
+                    value: "auto",
+                    label: matchedPreview
+                      ? `Suggested: ${matchedPreview.template.name} (${matchedPreview.type})`
+                      : "Automatic Matching (None available)",
+                  },
+                  ...templates.map((t) => {
+                    const tDept = departments.find((d) => d.id === t.departmentId);
+                    return {
+                      value: t.id,
+                      label: `${t.name} (${tDept ? tDept.name : "Company-wide"})${t.isDefault ? " [Default]" : ""}`,
+                    };
+                  }),
+                ]}
+              />
+
               {/* Real-time Template Matching & Snapshot Preview */}
-              <div className="p-3.5 bg-[#14161a] border border-white/[0.08] rounded-xl text-xs space-y-1.5">
-                <div className="flex items-center gap-1.5 text-white/90 font-medium">
-                  <Sparkle size={14} weight="fill" className="text-amber-400" />
-                  <span>Snapshot Workflow Preview</span>
-                </div>
-                {matchedPreview ? (
-                  <p className="text-[#8a8f98] m-0">
-                    Matches template{" "}
-                    <strong className="text-white">
-                      "{matchedPreview.template.name}"
-                    </strong>{" "}
-                    ({matchedPreview.template.tasks?.length || 0} tasks).
-                    <br />
-                    <span className="text-[11px] text-emerald-400 font-medium">
-                      ({matchedPreview.type})
-                    </span>
-                  </p>
-                ) : (
-                  <p className="text-[#8a8f98] m-0">
-                    No template matched yet. An empty onboarding roadmap will be
-                    created.
-                  </p>
-                )}
-              </div>
+              {(() => {
+                const isManualOverride = selectedTemplateId !== "auto" && Boolean(selectedTemplateId);
+                const activeTemplate = isManualOverride
+                  ? templates.find((t) => t.id === selectedTemplateId)
+                  : matchedPreview?.template;
+
+                if (!activeTemplate) {
+                  return (
+                    <div className="p-3.5 bg-[#14161a] border border-white/[0.08] rounded-xl text-xs space-y-1.5">
+                      <div className="flex items-center gap-1.5 text-white/90 font-medium">
+                        <Sparkle size={14} weight="fill" className="text-amber-400" />
+                        <span>Snapshot Workflow Preview</span>
+                      </div>
+                      <p className="text-[#8a8f98] m-0">
+                        No template selected or matched yet. An empty onboarding roadmap will be created.
+                      </p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="p-3.5 bg-[#14161a] border border-white/[0.08] rounded-xl text-xs space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-white/90 font-medium">
+                        <Sparkle size={14} weight="fill" className="text-amber-400" />
+                        <span>Snapshot Workflow Preview</span>
+                      </div>
+                      <Badge variant={isManualOverride ? "purple" : "green"}>
+                        {isManualOverride ? "Manual Override" : (matchedPreview?.type || "Auto-Matched")}
+                      </Badge>
+                    </div>
+                    <p className="text-[#8a8f98] m-0">
+                      Assigned template: <strong className="text-white">"{activeTemplate.name}"</strong> ({activeTemplate.tasks?.length || 0} tasks).
+                      <br />
+                      <span className="text-[11px] text-[#8a8f98]">
+                        {isManualOverride
+                          ? "Selected manually by HR Admin. These tasks will be snapshotted to the new hire."
+                          : "Matched automatically based on role and department."}
+                      </span>
+                    </p>
+                  </div>
+                );
+              })()}
             </>
           )}
 
@@ -940,6 +1158,128 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
           </div>
         )}
       </Modal>
+
+      {/* Create Department Modal */}
+      <Modal
+        isOpen={isDeptModalOpen}
+        onClose={() => setIsDeptModalOpen(false)}
+        title="Create New Department"
+        maxWidth="sm"
+      >
+        <form onSubmit={handleCreateDepartment} className="space-y-4">
+          <Input
+            label="Department Name"
+            placeholder="e.g. Design, Customer Success, Product"
+            value={deptName}
+            onChange={(e) => setDeptName(e.target.value)}
+            required
+            autoFocus
+          />
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/[0.06]">
+            <Button
+              type="button"
+              variant="ghost"
+              size="md"
+              onClick={() => setIsDeptModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              isLoading={isCreatingDept}
+              disabled={!deptName.trim()}
+            >
+              Create Department
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Edit Department Modal */}
+      <Modal
+        isOpen={Boolean(editingDept)}
+        onClose={() => setEditingDept(null)}
+        title="Rename Department"
+        maxWidth="sm"
+      >
+        <form onSubmit={handleUpdateDepartment} className="space-y-4">
+          <Input
+            label="Department Name"
+            value={editDeptName}
+            onChange={(e) => setEditDeptName(e.target.value)}
+            required
+            autoFocus
+          />
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/[0.06]">
+            <Button
+              type="button"
+              variant="ghost"
+              size="md"
+              onClick={() => setEditingDept(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              isLoading={isUpdatingDept}
+              disabled={!editDeptName.trim()}
+            >
+              Save Changes
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Delete Department Modal */}
+      <Modal
+        isOpen={Boolean(deletingDept)}
+        onClose={() => setDeletingDept(null)}
+        title="Delete Department"
+        maxWidth="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-[#8a8f98] leading-relaxed">
+            Are you sure you want to delete <strong className="text-white">{deletingDept?.name}</strong>?
+            <br />
+            Departments can only be deleted if they have no active employees, onboarding templates, or mentors assigned.
+          </p>
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/[0.06]">
+            <Button
+              type="button"
+              variant="ghost"
+              size="md"
+              onClick={() => setDeletingDept(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="md"
+              isLoading={isDeletingDept}
+              onClick={() => deletingDept && handleDeleteDepartment(deletingDept)}
+              className="bg-red-600 hover:bg-red-700 text-white border-red-500"
+            >
+              Delete Department
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Employee Detail Modal (Phase 5.2) */}
+      <EmployeeDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => {
+          setIsDetailModalOpen(false);
+          setDetailEmployeeId(null);
+        }}
+        employeeId={detailEmployeeId}
+        onEmployeeUpdated={loadData}
+      />
     </div>
   );
 };
