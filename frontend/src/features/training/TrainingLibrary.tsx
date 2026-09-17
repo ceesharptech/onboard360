@@ -339,7 +339,7 @@ export const TrainingLibrary: React.FC = () => {
               <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
                 <Video size={18} weight="duotone" />
               </div>
-              <h1 className="text-xl font-semibold tracking-tight text-[#f7f8f8]">
+              <h1 className="text-xl font-medium tracking-tight text-[#f7f8f8]">
                 Training & Guides
               </h1>
             </div>

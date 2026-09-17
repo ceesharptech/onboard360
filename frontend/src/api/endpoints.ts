@@ -564,3 +564,81 @@ export const trainingApi = {
       method: 'DELETE',
     }),
 };
+
+export interface AnalyticsSummary {
+  totalEmployees: number;
+  totalTasks: number;
+  completedTasks: number;
+  overdueTasks: number;
+  overallPercentComplete: number;
+  avgDaysToComplete: number;
+}
+
+export interface DepartmentRollup {
+  departmentId: string;
+  departmentName: string;
+  employeeCount: number;
+  totalTasks: number;
+  completedTasks: number;
+  overdueTasks: number;
+  percentComplete: number;
+}
+
+export interface TemplateRollup {
+  templateId: string;
+  templateName: string;
+  departmentId: string | null;
+  assignedEmployeesCount: number;
+  totalTasks: number;
+  completedTasks: number;
+  percentComplete: number;
+  avgDaysToComplete: number;
+}
+
+export interface TaskPerformance {
+  taskTitle: string;
+  category: string;
+  assigneeType: string;
+  totalAssigned: number;
+  completedCount: number;
+  overdueCount: number;
+  avgDaysToComplete: number;
+}
+
+export interface EmployeeAnalyticsItem {
+  id: string;
+  name: string;
+  email: string;
+  jobRole: string;
+  department: {
+    id: string;
+    name: string;
+  };
+  progress: {
+    totalTasks: number;
+    completedTasks: number;
+    percentComplete: number;
+    overdueTasks: number;
+  };
+}
+
+export interface AnalyticsData {
+  summary: AnalyticsSummary;
+  departmentRollups: DepartmentRollup[];
+  templateRollups: TemplateRollup[];
+  taskPerformance: TaskPerformance[];
+  employees: EmployeeAnalyticsItem[];
+  department?: {
+    id: string;
+    name: string;
+  } | null;
+}
+
+export const analyticsApi = {
+  get: (params?: { departmentId?: string }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.departmentId) searchParams.set('departmentId', params.departmentId);
+    const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    return apiRequest<AnalyticsData>(`/analytics${query}`);
+  },
+};

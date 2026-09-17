@@ -9,7 +9,11 @@ import type {
   LibraryDocument,
   PaginatedList,
 } from "../../api/endpoints";
-import { templateApi, departmentApi, libraryDocumentApi } from "../../api/endpoints";
+import {
+  templateApi,
+  departmentApi,
+  libraryDocumentApi,
+} from "../../api/endpoints";
 import { Button } from "../../components/common/Button";
 import { Badge } from "../../components/common/Badge";
 import { Input } from "../../components/common/Input";
@@ -45,7 +49,7 @@ export const TemplateBuilder: React.FC = () => {
   const [templateSearch, setTemplateSearch] = useState("");
   const [debouncedTemplateSearch, setDebouncedTemplateSearch] = useState("");
   const [templateDeptFilter, setTemplateDeptFilter] = useState(
-    user?.role === "manager" && user.departmentId ? user.departmentId : ""
+    user?.role === "manager" && user.departmentId ? user.departmentId : "",
   );
   const [templatePage, setTemplatePage] = useState(1);
   const [templatePagination, setTemplatePagination] = useState<PaginationMeta>({
@@ -76,7 +80,9 @@ export const TemplateBuilder: React.FC = () => {
   const [departmentId, setDepartmentId] = useState("");
   const [isDefault, setIsDefault] = useState(false);
   const [tasks, setTasks] = useState<TemplateTask[]>([]);
-  const [previewDescIndices, setPreviewDescIndices] = useState<Record<number, boolean>>({});
+  const [previewDescIndices, setPreviewDescIndices] = useState<
+    Record<number, boolean>
+  >({});
 
   const togglePreviewDesc = (index: number) => {
     setPreviewDescIndices((prev) => ({
@@ -89,7 +95,7 @@ export const TemplateBuilder: React.FC = () => {
   const fetchTemplates = async (
     page = templatePage,
     search = debouncedTemplateSearch,
-    deptId = templateDeptFilter
+    deptId = templateDeptFilter,
   ) => {
     setIsLoading(true);
     setError(null);
@@ -102,14 +108,18 @@ export const TemplateBuilder: React.FC = () => {
           departmentId: deptId || undefined,
         }),
         departmentApi.list(),
-        libraryDocumentApi.list({ limit: 100 }).catch(() => [] as unknown as PaginatedList<LibraryDocument>),
+        libraryDocumentApi
+          .list({ limit: 100 })
+          .catch(() => [] as unknown as PaginatedList<LibraryDocument>),
       ]);
       setTemplates(tList);
       if (tList.pagination) {
         setTemplatePagination(tList.pagination);
       }
       setDepartments(dList);
-      setAvailableDocs(Array.isArray(docList) ? docList : (docList as any)?.data || []);
+      setAvailableDocs(
+        Array.isArray(docList) ? docList : (docList as any)?.data || [],
+      );
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load templates");
     } finally {
@@ -251,7 +261,8 @@ export const TemplateBuilder: React.FC = () => {
       setIsModalOpen(false);
       fetchTemplates();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to save template";
+      const msg =
+        err instanceof Error ? err.message : "Failed to save template";
       setError(msg);
       toast.error("Failed to save template", msg);
     } finally {
@@ -266,7 +277,8 @@ export const TemplateBuilder: React.FC = () => {
       toast.info("Template deleted", "The template was removed");
       fetchTemplates();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to delete template";
+      const msg =
+        err instanceof Error ? err.message : "Failed to delete template";
       setError(msg);
       toast.error("Failed to delete template", msg);
     }
@@ -277,7 +289,7 @@ export const TemplateBuilder: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/[0.06]">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[#f7f8f8] m-0">
+          <h1 className="text-2xl font-medium tracking-tight text-[#f7f8f8] m-0">
             {user?.role === "manager"
               ? "Department Templates"
               : "Workflow Templates"}
@@ -347,7 +359,8 @@ export const TemplateBuilder: React.FC = () => {
             </select>
           )}
 
-          {(templateSearch || (user?.role === "hr_admin" && templateDeptFilter)) && (
+          {(templateSearch ||
+            (user?.role === "hr_admin" && templateDeptFilter)) && (
             <Button
               variant="ghost"
               size="sm"
@@ -409,7 +422,9 @@ export const TemplateBuilder: React.FC = () => {
                         {t.department && (
                           <Badge variant="purple">{t.department.name}</Badge>
                         )}
-                        {t.jobRole && <Badge variant="white">{t.jobRole}</Badge>}
+                        {t.jobRole && (
+                          <Badge variant="white">{t.jobRole}</Badge>
+                        )}
                         {t.isDefault && (
                           <Badge variant="green">Default Template</Badge>
                         )}
@@ -437,7 +452,11 @@ export const TemplateBuilder: React.FC = () => {
                     <div className="flex items-center justify-between text-xs text-[#8a8f98] mb-2 font-medium">
                       <span>Tasks Pipeline ({t.tasks?.length || 0})</span>
                       <span className="text-[11px] font-mono">
-                        {t.tasks?.reduce((acc, curr) => Math.max(acc, curr.dueOffsetDays), 0) || 0}d duration
+                        {t.tasks?.reduce(
+                          (acc, curr) => Math.max(acc, curr.dueOffsetDays),
+                          0,
+                        ) || 0}
+                        d duration
                       </span>
                     </div>
 
@@ -449,15 +468,29 @@ export const TemplateBuilder: React.FC = () => {
                         >
                           <div className="flex items-center gap-2 truncate pr-2">
                             <span className="w-1.5 h-1.5 rounded-full bg-white/40 shrink-0" />
-                            <span className="text-[#f7f8f8] truncate">{task.title}</span>
+                            <span className="text-[#f7f8f8] truncate">
+                              {task.title}
+                            </span>
                             {task.taskUrl && (
-                              <span title={`Linked URL: ${task.taskUrl}`} className="shrink-0">
-                                <LinkIcon size={12} className="text-[#8a8f98]" />
+                              <span
+                                title={`Linked URL: ${task.taskUrl}`}
+                                className="shrink-0"
+                              >
+                                <LinkIcon
+                                  size={12}
+                                  className="text-[#8a8f98]"
+                                />
                               </span>
                             )}
                             {task.relatedDocument && (
-                              <span title={`Attached Document: ${task.relatedDocument.filename}`} className="shrink-0">
-                                <FileText size={12} className="text-[#8a8f98]" />
+                              <span
+                                title={`Attached Document: ${task.relatedDocument.filename}`}
+                                className="shrink-0"
+                              >
+                                <FileText
+                                  size={12}
+                                  className="text-[#8a8f98]"
+                                />
                               </span>
                             )}
                           </div>
@@ -617,7 +650,20 @@ export const TemplateBuilder: React.FC = () => {
                     <div className="sm:col-span-3 space-y-1">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] text-[#5a5e6b]">
-                          Supports Markdown: <span className="font-mono text-[#8a8f98]">**bold**</span>, <span className="italic text-[#8a8f98]">_italic_</span>, <span className="font-mono text-[#8a8f98]">`code`</span>, <span className="text-[#8a8f98]">[link](url)</span>, lists
+                          Supports Markdown:{" "}
+                          <span className="font-mono text-[#8a8f98]">
+                            **bold**
+                          </span>
+                          ,{" "}
+                          <span className="italic text-[#8a8f98]">
+                            _italic_
+                          </span>
+                          ,{" "}
+                          <span className="font-mono text-[#8a8f98]">
+                            `code`
+                          </span>
+                          , <span className="text-[#8a8f98]">[link](url)</span>,
+                          lists
                         </span>
                         {task.description && (
                           <button
@@ -653,7 +699,7 @@ export const TemplateBuilder: React.FC = () => {
                             handleUpdateTaskField(
                               index,
                               "description",
-                              e.target.value
+                              e.target.value,
                             )
                           }
                           className="w-full bg-[#14161a] border border-white/[0.08] focus:border-white/30 text-xs text-[#f7f8f8] rounded-md px-2.5 py-1.5 focus:outline-none resize-y min-h-[50px]"
@@ -662,7 +708,9 @@ export const TemplateBuilder: React.FC = () => {
                     </div>
 
                     <div className="sm:col-span-2 flex items-center gap-2">
-                      <label className="text-[10px] text-[#5a5e6b] shrink-0">Assignee:</label>
+                      <label className="text-[10px] text-[#5a5e6b] shrink-0">
+                        Assignee:
+                      </label>
                       <select
                         value={task.assigneeType}
                         onChange={(e) =>
@@ -681,7 +729,9 @@ export const TemplateBuilder: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-1.5 shrink-0 justify-end">
-                      <label className="text-[10px] text-[#5a5e6b] shrink-0">Due in:</label>
+                      <label className="text-[10px] text-[#5a5e6b] shrink-0">
+                        Due in:
+                      </label>
                       <span className="text-[11px] text-[#5a5e6b]">+</span>
                       <input
                         type="number"
@@ -719,7 +769,10 @@ export const TemplateBuilder: React.FC = () => {
                           <option value="">No Document Attached</option>
                           {availableDocs.map((doc) => (
                             <option key={doc.id} value={doc.id}>
-                              {doc.filename} {doc.department ? `(${doc.department.name})` : "(Company-wide)"}
+                              {doc.filename}{" "}
+                              {doc.department
+                                ? `(${doc.department.name})`
+                                : "(Company-wide)"}
                             </option>
                           ))}
                         </select>

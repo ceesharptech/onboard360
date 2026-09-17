@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
-import type { DocumentItem, RetrievedChunkItem, PaginationMeta } from "../../api/endpoints";
+import type {
+  DocumentItem,
+  RetrievedChunkItem,
+  PaginationMeta,
+} from "../../api/endpoints";
 import { documentApi } from "../../api/endpoints";
 import { useToast } from "../../context/ToastContext";
 import { Card } from "../../components/common/Card";
@@ -74,7 +78,10 @@ export const DocumentManager: React.FC = () => {
     return () => clearTimeout(timer);
   }, [docSearch]);
 
-  const fetchDocuments = async (page = docPage, search = debouncedDocSearch) => {
+  const fetchDocuments = async (
+    page = docPage,
+    search = debouncedDocSearch,
+  ) => {
     try {
       setError(null);
       const res = await documentApi.list({
@@ -82,7 +89,7 @@ export const DocumentManager: React.FC = () => {
         limit: 20,
         search: search || undefined,
       });
-      const docs = Array.isArray(res) ? res : ((res as any)?.data || []);
+      const docs = Array.isArray(res) ? res : (res as any)?.data || [];
       setDocuments(docs);
       if (res.pagination) {
         setDocPagination(res.pagination);
@@ -265,7 +272,7 @@ export const DocumentManager: React.FC = () => {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/[0.06]">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-[#f7f8f8] m-0">
+          <h1 className="text-xl sm:text-2xl font-medium tracking-tight text-[#f7f8f8] m-0">
             Knowledge Base & Documents
           </h1>
           <p className="text-sm text-[#8a8f98] mt-1">

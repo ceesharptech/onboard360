@@ -8,6 +8,7 @@ import documentRoutes from './documentRoutes';
 import assistantRoutes from './assistantRoutes';
 import libraryDocumentRoutes from './libraryDocumentRoutes';
 import trainingRoutes from './trainingRoutes';
+import analyticsRoutes from './analyticsRoutes';
 
 const router = Router();
 
@@ -20,5 +21,6 @@ router.use('/documents', documentRoutes);
 router.use('/assistant', assistantRoutes);
 router.use('/library-documents', libraryDocumentRoutes);
 router.use('/training', trainingRoutes);
+router.use('/analytics', analyticsRoutes);
 
 export default router;

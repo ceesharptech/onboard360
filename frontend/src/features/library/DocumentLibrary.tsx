@@ -13,10 +13,7 @@ import {
   Plus,
   WarningCircle,
 } from "@phosphor-icons/react";
-import {
-  libraryDocumentApi,
-  departmentApi,
-} from "../../api/endpoints";
+import { libraryDocumentApi, departmentApi } from "../../api/endpoints";
 import type {
   LibraryDocument,
   Department,
@@ -58,7 +55,7 @@ export const DocumentLibrary: React.FC = () => {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadScope, setUploadScope] = useState<"company" | "department">(
-    user?.role === "manager" ? "department" : "company"
+    user?.role === "manager" ? "department" : "company",
   );
   const [uploadDeptId, setUploadDeptId] = useState("");
   const [isUploading, setIsUploading] = useState(false);
@@ -105,7 +102,7 @@ export const DocumentLibrary: React.FC = () => {
   const fetchDocuments = async (
     targetPage = page,
     targetSearch = debouncedSearch,
-    targetDept = selectedDeptFilter
+    targetDept = selectedDeptFilter,
   ) => {
     setIsLoading(true);
     setError(null);
@@ -124,7 +121,7 @@ export const DocumentLibrary: React.FC = () => {
       }
     } catch (err: unknown) {
       setError(
-        err instanceof Error ? err.message : "Failed to load document library"
+        err instanceof Error ? err.message : "Failed to load document library",
       );
     } finally {
       setIsLoading(false);
@@ -143,7 +140,9 @@ export const DocumentLibrary: React.FC = () => {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!res.ok) {
-        throw new Error("Unable to download document. Access denied or file missing.");
+        throw new Error(
+          "Unable to download document. Access denied or file missing.",
+        );
       }
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
@@ -155,7 +154,10 @@ export const DocumentLibrary: React.FC = () => {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (err: any) {
-      toast.error("Download Failed", err.message || "Failed to download document");
+      toast.error(
+        "Download Failed",
+        err.message || "Failed to download document",
+      );
     }
   };
 
@@ -163,7 +165,10 @@ export const DocumentLibrary: React.FC = () => {
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!uploadFile) {
-      toast.error("Missing File", "Please select a PDF or .docx file to upload");
+      toast.error(
+        "Missing File",
+        "Please select a PDF or .docx file to upload",
+      );
       return;
     }
 
@@ -173,13 +178,13 @@ export const DocumentLibrary: React.FC = () => {
         user?.role === "manager"
           ? user.departmentId
           : uploadScope === "department"
-          ? uploadDeptId
-          : null;
+            ? uploadDeptId
+            : null;
 
       await libraryDocumentApi.upload(uploadFile, deptId);
       toast.success(
         "Document Uploaded",
-        `"${uploadFile.name}" was successfully added to the library.`
+        `"${uploadFile.name}" was successfully added to the library.`,
       );
       setIsUploadModalOpen(false);
       setUploadFile(null);
@@ -201,13 +206,16 @@ export const DocumentLibrary: React.FC = () => {
       await libraryDocumentApi.replace(targetDoc.id, replaceFile);
       toast.success(
         "Document Replaced",
-        `"${targetDoc.filename}" replaced with "${replaceFile.name}".`
+        `"${targetDoc.filename}" replaced with "${replaceFile.name}".`,
       );
       setTargetDoc(null);
       setReplaceFile(null);
       fetchDocuments(page, debouncedSearch, selectedDeptFilter);
     } catch (err: any) {
-      toast.error("Replacement Failed", err.message || "Failed to replace document");
+      toast.error(
+        "Replacement Failed",
+        err.message || "Failed to replace document",
+      );
     } finally {
       setIsReplacing(false);
     }
@@ -222,7 +230,7 @@ export const DocumentLibrary: React.FC = () => {
       await libraryDocumentApi.delete(deletingDoc.id);
       toast.success(
         "Document Deleted",
-        `"${deletingDoc.filename}" was removed from the library.`
+        `"${deletingDoc.filename}" was removed from the library.`,
       );
       setDeletingDoc(null);
       fetchDocuments(page, debouncedSearch, selectedDeptFilter);
@@ -235,7 +243,8 @@ export const DocumentLibrary: React.FC = () => {
 
   const canManageDoc = (doc: LibraryDocument) => {
     if (user?.role === "hr_admin") return true;
-    if (user?.role === "manager" && doc.departmentId === user.departmentId) return true;
+    if (user?.role === "manager" && doc.departmentId === user.departmentId)
+      return true;
     return false;
   };
 
@@ -251,11 +260,12 @@ export const DocumentLibrary: React.FC = () => {
               <FolderSimple size={20} weight="bold" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-white tracking-tight">
+              <h1 className="text-lg font-medium text-white tracking-tight">
                 Document Library
               </h1>
               <p className="text-xs text-[#8a8f98] mt-0.5">
-                Company-wide policies, employee handbooks, and departmental documentation.
+                Company-wide policies, employee handbooks, and departmental
+                documentation.
               </p>
             </div>
           </div>
@@ -354,8 +364,8 @@ export const DocumentLibrary: React.FC = () => {
               {search || selectedDeptFilter
                 ? "No library documents match the search or filter criteria."
                 : canUpload
-                ? "No documents in the library yet. Click 'Upload Document' to add your first policy or guide."
-                : "No documents currently available for your department."}
+                  ? "No documents in the library yet. Click 'Upload Document' to add your first policy or guide."
+                  : "No documents currently available for your department."}
             </p>
           </div>
         ) : (
@@ -509,17 +519,24 @@ export const DocumentLibrary: React.FC = () => {
                 }}
                 className="hidden"
               />
-              <UploadSimple size={28} className="mx-auto mb-2 text-indigo-400" />
+              <UploadSimple
+                size={28}
+                className="mx-auto mb-2 text-indigo-400"
+              />
               {uploadFile ? (
                 <div>
-                  <div className="font-semibold text-white">{uploadFile.name}</div>
+                  <div className="font-semibold text-white">
+                    {uploadFile.name}
+                  </div>
                   <div className="text-[11px] text-[#8a8f98] mt-0.5">
                     {(uploadFile.size / (1024 * 1024)).toFixed(2)} MB
                   </div>
                 </div>
               ) : (
                 <div>
-                  <div className="text-white font-medium">Click to browse file</div>
+                  <div className="text-white font-medium">
+                    Click to browse file
+                  </div>
                   <div className="text-[11px] text-[#62666d] mt-0.5">
                     PDF or DOCX documents up to 15MB
                   </div>
@@ -586,7 +603,9 @@ export const DocumentLibrary: React.FC = () => {
             </div>
           ) : (
             <div className="p-3 bg-[#14161a] border border-white/[0.08] rounded-xl text-xs space-y-1">
-              <span className="text-[11px] text-[#8a8f98]">Visibility Scope:</span>
+              <span className="text-[11px] text-[#8a8f98]">
+                Visibility Scope:
+              </span>
               <div className="flex items-center gap-1.5 text-emerald-400 font-medium">
                 <Buildings size={14} />
                 <span>Scoped exclusively to your Department</span>
@@ -625,9 +644,11 @@ export const DocumentLibrary: React.FC = () => {
       >
         <form onSubmit={handleReplaceSubmit} className="space-y-4 text-xs">
           <p className="text-[#8a8f98] leading-relaxed">
-            Replacing <strong className="text-white">"{targetDoc?.filename}"</strong> will
-            overwrite the file on disk. Any tasks linked to this document will seamlessly
-            reference the updated file. No historical versions are retained.
+            Replacing{" "}
+            <strong className="text-white">"{targetDoc?.filename}"</strong> will
+            overwrite the file on disk. Any tasks linked to this document will
+            seamlessly reference the updated file. No historical versions are
+            retained.
           </p>
 
           <div
@@ -645,17 +666,24 @@ export const DocumentLibrary: React.FC = () => {
               }}
               className="hidden"
             />
-            <ArrowsClockwise size={24} className="mx-auto mb-2 text-indigo-400" />
+            <ArrowsClockwise
+              size={24}
+              className="mx-auto mb-2 text-indigo-400"
+            />
             {replaceFile ? (
               <div>
-                <div className="font-semibold text-white">{replaceFile.name}</div>
+                <div className="font-semibold text-white">
+                  {replaceFile.name}
+                </div>
                 <div className="text-[11px] text-[#8a8f98] mt-0.5">
                   {(replaceFile.size / (1024 * 1024)).toFixed(2)} MB
                 </div>
               </div>
             ) : (
               <div>
-                <div className="text-white font-medium">Select replacement file</div>
+                <div className="text-white font-medium">
+                  Select replacement file
+                </div>
                 <div className="text-[11px] text-[#62666d] mt-0.5">
                   PDF or DOCX documents
                 </div>
@@ -700,9 +728,9 @@ export const DocumentLibrary: React.FC = () => {
                 Delete "{deletingDoc?.filename}"?
               </div>
               <p className="text-[11px] text-red-300/80 leading-relaxed">
-                This document will be permanently deleted from disk. Any template tasks or
-                active employee tasks referencing this document will automatically have their
-                link safely removed.
+                This document will be permanently deleted from disk. Any
+                template tasks or active employee tasks referencing this
+                document will automatically have their link safely removed.
               </p>
             </div>
           </div>

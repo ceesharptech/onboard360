@@ -13,6 +13,7 @@ import {
   FileText,
   FolderSimple,
   Video,
+  ChartBar,
 } from "@phosphor-icons/react";
 
 export interface AppShellProps {
@@ -52,6 +53,11 @@ export const AppShell: React.FC<AppShellProps> = ({
             label: "Department Templates",
             icon: <GitFork size={16} />,
           },
+          {
+            id: "analytics",
+            label: "Team Analytics",
+            icon: <ChartBar size={16} />,
+          },
         ]
       : []),
     ...(user?.role === "hr_admin"
@@ -70,6 +76,11 @@ export const AppShell: React.FC<AppShellProps> = ({
             id: "departments",
             label: "Departments & Mentors",
             icon: <Buildings size={16} />,
+          },
+          {
+            id: "analytics",
+            label: "Analytics",
+            icon: <ChartBar size={16} />,
           },
         ]
       : []),

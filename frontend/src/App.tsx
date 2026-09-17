@@ -12,6 +12,7 @@ import { DocumentManager } from './features/documents/DocumentManager';
 import { DocumentLibrary } from './features/library/DocumentLibrary';
 import { TrainingLibrary } from './features/training/TrainingLibrary';
 import { QorraChat } from './features/assistant/QorraChat';
+import { AnalyticsDashboard } from './features/analytics/AnalyticsDashboard';
 
 const getDefaultTabForRole = (role?: string) => {
   switch (role) {
@@ -31,9 +32,9 @@ const getValidTabsForRole = (role?: string) => {
     case 'employee':
       return ['my-onboarding', 'library', 'training', 'qorra'];
     case 'manager':
-      return ['team-roster', 'templates', 'library', 'training', 'qorra'];
+      return ['team-roster', 'templates', 'analytics', 'library', 'training', 'qorra'];
     case 'hr_admin':
-      return ['employees', 'templates', 'departments', 'library', 'training', 'documents', 'qorra'];
+      return ['employees', 'templates', 'departments', 'analytics', 'library', 'training', 'documents', 'qorra'];
     default:
       return [];
   }
@@ -94,6 +95,7 @@ const MainApp: React.FC = () => {
             <ManagerDashboard onNavigateToTemplates={() => setActiveTab('templates')} />
           )}
           {resolvedTab === 'templates' && <TemplateBuilder />}
+          {resolvedTab === 'analytics' && <AnalyticsDashboard />}
         </>
       )}
 
@@ -103,6 +105,7 @@ const MainApp: React.FC = () => {
           {resolvedTab === 'employees' && <HrAdminDashboard initialTab="employees" />}
           {resolvedTab === 'departments' && <HrAdminDashboard initialTab="departments" />}
           {resolvedTab === 'templates' && <TemplateBuilder />}
+          {resolvedTab === 'analytics' && <AnalyticsDashboard />}
         </>
       )}
     </AppShell>

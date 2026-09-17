@@ -69,7 +69,9 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
   const [empName, setEmpName] = useState("");
   const [empEmail, setEmpEmail] = useState("");
-  const [empAppRole, setEmpAppRole] = useState<"employee" | "manager" | "hr_admin">("employee");
+  const [empAppRole, setEmpAppRole] = useState<
+    "employee" | "manager" | "hr_admin"
+  >("employee");
   const [empInitialPassword, setEmpInitialPassword] = useState("");
   const [empDeptId, setEmpDeptId] = useState("");
   const [empRole, setEmpRole] = useState("");
@@ -104,7 +106,9 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
   const [isAddingMentor, setIsAddingMentor] = useState(false);
 
   // Expandable Mentees in Mentor Pool State
-  const [expandedMentorIds, setExpandedMentorIds] = useState<Record<string, boolean>>({});
+  const [expandedMentorIds, setExpandedMentorIds] = useState<
+    Record<string, boolean>
+  >({});
 
   // View Mentee Roadmap Modal State
   const [selectedMentee, setSelectedMentee] = useState<Employee | null>(null);
@@ -144,7 +148,7 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
     page = empPage,
     search = debouncedEmpSearch,
     dept = selectedDeptFilter,
-    status = selectedStatusFilter
+    status = selectedStatusFilter,
   ) => {
     try {
       const res = await employeeApi.list({
@@ -164,7 +168,8 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
   };
 
   const generateTempPassword = () => {
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
+    const chars =
+      "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
     let pwd = "Pass#";
     for (let i = 0; i < 7; i++) {
       pwd += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -232,7 +237,12 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
       isInitialMount.current = false;
       return;
     }
-    loadEmployees(empPage, debouncedEmpSearch, selectedDeptFilter, selectedStatusFilter);
+    loadEmployees(
+      empPage,
+      debouncedEmpSearch,
+      selectedDeptFilter,
+      selectedStatusFilter,
+    );
   }, [empPage, debouncedEmpSearch, selectedDeptFilter, selectedStatusFilter]);
 
   const toggleMentorExpanded = (mentorId: string) => {
@@ -286,7 +296,9 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
     }
 
     if (empAppRole !== "hr_admin" && (!empDeptId || !empRole)) {
-      setError("Department and Job Role are required for Employees and Managers");
+      setError(
+        "Department and Job Role are required for Employees and Managers",
+      );
       return;
     }
 
@@ -302,18 +314,18 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
         jobRole: empAppRole === "hr_admin" ? null : empRole,
         startDate: empAppRole === "hr_admin" ? null : empStartDate,
         employmentType: empAppRole === "hr_admin" ? null : empType,
-        managerId: empAppRole === "hr_admin" ? null : (empManagerId || null),
+        managerId: empAppRole === "hr_admin" ? null : empManagerId || null,
         templateId:
           empAppRole === "hr_admin"
             ? null
             : selectedTemplateId && selectedTemplateId !== "auto"
-            ? selectedTemplateId
-            : null,
+              ? selectedTemplateId
+              : null,
       });
 
       toast.success(
         "Account created",
-        `Successfully provisioned ${empAppRole.replace("_", " ")} account for ${empName}`
+        `Successfully provisioned ${empAppRole.replace("_", " ")} account for ${empName}`,
       );
 
       setIsEmployeeModalOpen(false);
@@ -326,7 +338,8 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
       setSelectedTemplateId("auto");
       loadData();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to create employee";
+      const msg =
+        err instanceof Error ? err.message : "Failed to create employee";
       setError(msg);
       toast.error("Failed to create account", msg);
     } finally {
@@ -341,12 +354,16 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
     setIsCreatingDept(true);
     try {
       await departmentApi.create(deptName.trim());
-      toast.success("Department created", `Successfully created ${deptName.trim()}`);
+      toast.success(
+        "Department created",
+        `Successfully created ${deptName.trim()}`,
+      );
       setIsDeptModalOpen(false);
       setDeptName("");
       loadData();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to create department";
+      const msg =
+        err instanceof Error ? err.message : "Failed to create department";
       toast.error("Failed to create department", msg);
     } finally {
       setIsCreatingDept(false);
@@ -360,12 +377,16 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
     setIsUpdatingDept(true);
     try {
       await departmentApi.update(editingDept.id, editDeptName.trim());
-      toast.success("Department updated", `Successfully renamed department to ${editDeptName.trim()}`);
+      toast.success(
+        "Department updated",
+        `Successfully renamed department to ${editDeptName.trim()}`,
+      );
       setEditingDept(null);
       setEditDeptName("");
       loadData();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to update department";
+      const msg =
+        err instanceof Error ? err.message : "Failed to update department";
       toast.error("Failed to update department", msg);
     } finally {
       setIsUpdatingDept(false);
@@ -380,7 +401,8 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
       setDeletingDept(null);
       loadData();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to delete department";
+      const msg =
+        err instanceof Error ? err.message : "Failed to delete department";
       toast.error("Cannot delete department", msg);
     } finally {
       setIsDeletingDept(false);
@@ -394,12 +416,16 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
     setIsAddingMentor(true);
     try {
       await departmentApi.addMentor(targetDeptId, mentorUserId);
-      toast.success("Mentor added", "Enrolled team member into department mentor pool");
+      toast.success(
+        "Mentor added",
+        "Enrolled team member into department mentor pool",
+      );
       setIsMentorModalOpen(false);
       setMentorUserId("");
       loadData();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to add mentor to pool";
+      const msg =
+        err instanceof Error ? err.message : "Failed to add mentor to pool";
       setError(msg);
       toast.error("Failed to add mentor", msg);
     } finally {
@@ -414,7 +440,8 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
       toast.info("Mentor removed", "Mentor was removed from the active pool");
       loadData();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to remove mentor";
+      const msg =
+        err instanceof Error ? err.message : "Failed to remove mentor";
       setError(msg);
       toast.error("Failed to remove mentor", msg);
     }
@@ -432,7 +459,7 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/[0.06]">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-[#f7f8f8] m-0">
+          <h1 className="text-xl sm:text-2xl font-medium tracking-tight text-[#f7f8f8] m-0">
             HR Administration
           </h1>
           <p className="text-sm text-[#8a8f98] mt-1">
@@ -471,7 +498,9 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
                 onClick={() => {
                   const firstDept = departments[0]?.id || "";
                   setTargetDeptId(firstDept);
-                  const firstUser = users.find((u) => !u.departmentId || u.departmentId === firstDept);
+                  const firstUser = users.find(
+                    (u) => !u.departmentId || u.departmentId === firstDept,
+                  );
                   setMentorUserId(firstUser?.id || users[0]?.id || "");
                   setIsMentorModalOpen(true);
                 }}
@@ -603,7 +632,9 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
             {employees.length === 0 ? (
               <div className="text-center py-12 px-4 text-[#8a8f98]">
                 <Users size={32} className="mx-auto mb-2 text-[#565964]" />
-                <p className="text-sm font-medium text-white mb-1">No employees found</p>
+                <p className="text-sm font-medium text-white mb-1">
+                  No employees found
+                </p>
                 <p className="text-xs max-w-sm mx-auto text-[#8a8f98]">
                   {empSearch || selectedDeptFilter || selectedStatusFilter
                     ? "No employees match the current search query or filter criteria."
@@ -641,7 +672,9 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
                           title="Click to view full onboarding roadmap & assign tasks"
                         >
                           <td className="py-3.5 px-4">
-                            <div className="font-medium text-white">{emp.name}</div>
+                            <div className="font-medium text-white">
+                              {emp.name}
+                            </div>
                             <div className="text-[#8a8f98] text-[11px] mt-0.5">
                               {emp.email}
                             </div>
@@ -673,7 +706,9 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
                             )}
                           </td>
                           <td className="py-3.5 px-4 text-[#8a8f98]">
-                            {emp.startDate ? new Date(emp.startDate).toLocaleDateString() : "N/A"}
+                            {emp.startDate
+                              ? new Date(emp.startDate).toLocaleDateString()
+                              : "N/A"}
                           </td>
                           <td className="py-3.5 px-4">
                             <div className="flex items-center gap-2 max-w-[130px]">
@@ -713,8 +748,12 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-3 pb-1">
             <div>
-              <h3 className="text-sm font-semibold text-white m-0">Departments & Org Structure</h3>
-              <p className="text-xs text-[#8a8f98] mt-0.5 m-0">Manage company departments and configure mentor pools</p>
+              <h3 className="text-sm font-semibold text-white m-0">
+                Departments & Org Structure
+              </h3>
+              <p className="text-xs text-[#8a8f98] mt-0.5 m-0">
+                Manage company departments and configure mentor pools
+              </p>
             </div>
             <Button
               variant="utility"
@@ -734,7 +773,10 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
               const mentors = departmentMentors[dept.id] || [];
 
               return (
-                <Card key={dept.id} className="p-5 flex flex-col justify-between">
+                <Card
+                  key={dept.id}
+                  className="p-5 flex flex-col justify-between"
+                >
                   <div>
                     <div className="flex items-center justify-between pb-3 border-b border-white/[0.06] mb-4">
                       <div className="flex items-center gap-2">
@@ -767,127 +809,158 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
                       </div>
                     </div>
 
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-[#62666d] block mb-2">
-                    Active Mentor Pool
-                  </span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#62666d] block mb-2">
+                      Active Mentor Pool
+                    </span>
 
-                  {mentors.length === 0 ? (
-                    <p className="text-xs text-[#62666d] py-3">
-                      No active mentors in this department pool.
-                    </p>
-                  ) : (
-                    <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
-                      {mentors.map((m) => {
-                        const isExpanded = Boolean(expandedMentorIds[m.id]);
-                        const mentees = m.mentees || [];
+                    {mentors.length === 0 ? (
+                      <p className="text-xs text-[#62666d] py-3">
+                        No active mentors in this department pool.
+                      </p>
+                    ) : (
+                      <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
+                        {mentors.map((m) => {
+                          const isExpanded = Boolean(expandedMentorIds[m.id]);
+                          const mentees = m.mentees || [];
 
-                        return (
-                          <div
-                            key={m.id}
-                            className="rounded-lg bg-[#14161a] border border-white/[0.06] transition-colors"
-                          >
-                            <div className="flex items-center justify-between p-3">
-                              <div className="flex-1">
-                                <div className="font-medium text-white/90 text-xs">
-                                  {m.user.email}
+                          return (
+                            <div
+                              key={m.id}
+                              className="rounded-lg bg-[#14161a] border border-white/[0.06] transition-colors"
+                            >
+                              <div className="flex items-center justify-between p-3">
+                                <div className="flex-1">
+                                  <div className="font-medium text-white/90 text-xs">
+                                    {m.user.email}
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
+                                      <Users size={12} />
+                                      {m.currentMenteeCount} active mentee
+                                      {m.currentMenteeCount !== 1 ? "s" : ""}
+                                    </span>
+                                    {mentees.length > 0 && (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          toggleMentorExpanded(m.id)
+                                        }
+                                        className="inline-flex items-center gap-0.5 text-[11px] text-[#8a8f98] hover:text-white transition-colors cursor-pointer"
+                                      >
+                                        <span>
+                                          {isExpanded
+                                            ? "Hide mentees"
+                                            : "View mentees"}
+                                        </span>
+                                        {isExpanded ? (
+                                          <CaretUp size={11} />
+                                        ) : (
+                                          <CaretDown size={11} />
+                                        )}
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
-                                    <Users size={12} />
-                                    {m.currentMenteeCount} active mentee{m.currentMenteeCount !== 1 ? 's' : ''}
-                                  </span>
-                                  {mentees.length > 0 && (
-                                    <button
-                                      type="button"
-                                      onClick={() => toggleMentorExpanded(m.id)}
-                                      className="inline-flex items-center gap-0.5 text-[11px] text-[#8a8f98] hover:text-white transition-colors cursor-pointer"
-                                    >
-                                      <span>{isExpanded ? "Hide mentees" : "View mentees"}</span>
-                                      {isExpanded ? <CaretUp size={11} /> : <CaretDown size={11} />}
-                                    </button>
+                                <button
+                                  onClick={() =>
+                                    handleRemoveMentor(dept.id, m.id)
+                                  }
+                                  className="text-[#62666d] hover:text-[#f87171] p-1.5 cursor-pointer transition-colors"
+                                  title="Deactivate mentor"
+                                >
+                                  <Trash size={14} />
+                                </button>
+                              </div>
+
+                              {/* Expandable Mentees List */}
+                              {isExpanded && (
+                                <div className="border-t border-white/[0.06] bg-[#101216] p-3 space-y-2.5 rounded-b-lg">
+                                  {mentees.length === 0 ? (
+                                    <div className="text-[11px] text-[#62666d]">
+                                      No mentees assigned currently
+                                    </div>
+                                  ) : (
+                                    mentees.map((mentee) => {
+                                      const progressPercent =
+                                        mentee.progress?.percentComplete ?? 0;
+                                      const completed =
+                                        mentee.progress?.completedTasks ?? 0;
+                                      const total =
+                                        mentee.progress?.totalTasks ?? 0;
+
+                                      return (
+                                        <div
+                                          key={mentee.id}
+                                          className="p-2.5 rounded bg-[#16181e] border border-white/[0.04] flex items-center justify-between gap-3 text-xs"
+                                        >
+                                          <div className="flex-1 min-w-0">
+                                            <div className="font-medium text-white truncate">
+                                              {mentee.name}
+                                            </div>
+                                            <div className="text-[11px] text-[#8a8f98] truncate">
+                                              {mentee.jobRole}
+                                            </div>
+                                            <div className="flex items-center gap-2 mt-1.5">
+                                              <div className="w-20 h-1.5 bg-white/[0.08] rounded-full overflow-hidden">
+                                                <div
+                                                  className="h-full bg-emerald-400 rounded-full"
+                                                  style={{
+                                                    width: `${progressPercent}%`,
+                                                  }}
+                                                />
+                                              </div>
+                                              <span className="text-[10px] text-[#a0a6b5]">
+                                                {completed}/{total} (
+                                                {progressPercent}%)
+                                              </span>
+                                            </div>
+                                          </div>
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              handleOpenMenteeRoadmap(mentee.id)
+                                            }
+                                            className="shrink-0 flex items-center gap-1 px-2.5 py-1 text-[11px] rounded bg-white/[0.06] hover:bg-white/[0.12] text-white/90 border border-white/[0.08] transition-colors cursor-pointer"
+                                          >
+                                            <span>Roadmap</span>
+                                            <ArrowSquareOut size={12} />
+                                          </button>
+                                        </div>
+                                      );
+                                    })
                                   )}
                                 </div>
-                              </div>
-                              <button
-                                onClick={() => handleRemoveMentor(dept.id, m.id)}
-                                className="text-[#62666d] hover:text-[#f87171] p-1.5 cursor-pointer transition-colors"
-                                title="Deactivate mentor"
-                              >
-                                <Trash size={14} />
-                              </button>
+                              )}
                             </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
 
-                            {/* Expandable Mentees List */}
-                            {isExpanded && (
-                              <div className="border-t border-white/[0.06] bg-[#101216] p-3 space-y-2.5 rounded-b-lg">
-                                {mentees.length === 0 ? (
-                                  <div className="text-[11px] text-[#62666d]">No mentees assigned currently</div>
-                                ) : (
-                                  mentees.map((mentee) => {
-                                    const progressPercent = mentee.progress?.percentComplete ?? 0;
-                                    const completed = mentee.progress?.completedTasks ?? 0;
-                                    const total = mentee.progress?.totalTasks ?? 0;
-
-                                    return (
-                                      <div
-                                        key={mentee.id}
-                                        className="p-2.5 rounded bg-[#16181e] border border-white/[0.04] flex items-center justify-between gap-3 text-xs"
-                                      >
-                                        <div className="flex-1 min-w-0">
-                                          <div className="font-medium text-white truncate">{mentee.name}</div>
-                                          <div className="text-[11px] text-[#8a8f98] truncate">{mentee.jobRole}</div>
-                                          <div className="flex items-center gap-2 mt-1.5">
-                                            <div className="w-20 h-1.5 bg-white/[0.08] rounded-full overflow-hidden">
-                                              <div
-                                                className="h-full bg-emerald-400 rounded-full"
-                                                style={{ width: `${progressPercent}%` }}
-                                              />
-                                            </div>
-                                            <span className="text-[10px] text-[#a0a6b5]">
-                                              {completed}/{total} ({progressPercent}%)
-                                            </span>
-                                          </div>
-                                        </div>
-                                        <button
-                                          type="button"
-                                          onClick={() => handleOpenMenteeRoadmap(mentee.id)}
-                                          className="shrink-0 flex items-center gap-1 px-2.5 py-1 text-[11px] rounded bg-white/[0.06] hover:bg-white/[0.12] text-white/90 border border-white/[0.08] transition-colors cursor-pointer"
-                                        >
-                                          <span>Roadmap</span>
-                                          <ArrowSquareOut size={12} />
-                                        </button>
-                                      </div>
-                                    );
-                                  })
-                                )}
-                              </div>
-                            )}
-                          </div>
+                  <div className="pt-4 mt-3 border-t border-white/[0.06]">
+                    <Button
+                      variant="utility"
+                      size="sm"
+                      icon={<Plus size={13} />}
+                      onClick={() => {
+                        setTargetDeptId(dept.id);
+                        const matchingUsers = users.filter(
+                          (u) => !u.departmentId || u.departmentId === dept.id,
                         );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                <div className="pt-4 mt-3 border-t border-white/[0.06]">
-                  <Button
-                    variant="utility"
-                    size="sm"
-                    icon={<Plus size={13} />}
-                    onClick={() => {
-                      setTargetDeptId(dept.id);
-                      const matchingUsers = users.filter((u) => !u.departmentId || u.departmentId === dept.id);
-                      setMentorUserId(matchingUsers[0]?.id || users[0]?.id || "");
-                      setIsMentorModalOpen(true);
-                    }}
-                    className="w-full py-3"
-                  >
-                    Add Mentor to {dept.name}
-                  </Button>
-                </div>
-              </Card>
-            );
-          })}
+                        setMentorUserId(
+                          matchingUsers[0]?.id || users[0]?.id || "",
+                        );
+                        setIsMentorModalOpen(true);
+                      }}
+                      className="w-full py-3"
+                    >
+                      Add Mentor to {dept.name}
+                    </Button>
+                  </div>
+                </Card>
+              );
+            })}
           </div>
         </div>
       )}
@@ -916,7 +989,9 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
                 }`}
               >
                 <div className="font-semibold">Employee</div>
-                <div className="text-[10px] text-[#8a8f98] mt-0.5">Standard new hire</div>
+                <div className="text-[10px] text-[#8a8f98] mt-0.5">
+                  Standard new hire
+                </div>
               </button>
 
               <button
@@ -929,7 +1004,9 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
                 }`}
               >
                 <div className="font-semibold">Manager</div>
-                <div className="text-[10px] text-[#8a8f98] mt-0.5">Department head</div>
+                <div className="text-[10px] text-[#8a8f98] mt-0.5">
+                  Department head
+                </div>
               </button>
 
               <button
@@ -945,12 +1022,16 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
                   <ShieldCheck size={13} className="text-purple-400" />
                   <span>HR Admin</span>
                 </div>
-                <div className="text-[10px] text-[#8a8f98] mt-0.5">Platform manager</div>
+                <div className="text-[10px] text-[#8a8f98] mt-0.5">
+                  Platform manager
+                </div>
               </button>
             </div>
             {empAppRole === "hr_admin" && (
               <p className="text-[11px] text-purple-300/80 m-0 pt-1 leading-relaxed">
-                HR Administrators have company-wide access to employees, templates, documents, and mentor pools. They do not have onboarding roadmaps or department templates.
+                HR Administrators have company-wide access to employees,
+                templates, documents, and mentor pools. They do not have
+                onboarding roadmaps or department templates.
               </p>
             )}
           </div>
@@ -1003,7 +1084,10 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
                   size="md"
                   onClick={() => {
                     navigator.clipboard.writeText(empInitialPassword);
-                    toast.info("Copied to clipboard", "Temporary password copied");
+                    toast.info(
+                      "Copied to clipboard",
+                      "Temporary password copied",
+                    );
                   }}
                   icon={<Copy size={14} />}
                   className="mb-[1px]"
@@ -1014,7 +1098,9 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
               )}
             </div>
             <p className="text-[11px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 p-2.5 rounded-lg leading-relaxed mt-1.5">
-              Share this temporary password directly with the new hire. They will be required to change it immediately upon their first login before accessing the workspace.
+              Share this temporary password directly with the new hire. They
+              will be required to change it immediately upon their first login
+              before accessing the workspace.
             </p>
           </div>
 
@@ -1026,7 +1112,10 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
                   label="Department"
                   value={empDeptId}
                   onChange={(e) => setEmpDeptId(e.target.value)}
-                  options={departments.map((d) => ({ value: d.id, label: d.name }))}
+                  options={departments.map((d) => ({
+                    value: d.id,
+                    label: d.name,
+                  }))}
                 />
 
                 <Input
@@ -1074,12 +1163,14 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
                     .filter((u) => u.role === "manager")
                     .map((u) => {
                       const isSameDept = u.departmentId === empDeptId;
-                      const uDept = departments.find((d) => d.id === u.departmentId);
+                      const uDept = departments.find(
+                        (d) => d.id === u.departmentId,
+                      );
                       const deptSuffix = isSameDept
                         ? " (Department Manager)"
                         : uDept
-                        ? ` (${uDept.name})`
-                        : "";
+                          ? ` (${uDept.name})`
+                          : "";
                       return {
                         value: u.id,
                         label: `${u.email}${deptSuffix}`,
@@ -1101,7 +1192,9 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
                       : "Automatic Matching (None available)",
                   },
                   ...templates.map((t) => {
-                    const tDept = departments.find((d) => d.id === t.departmentId);
+                    const tDept = departments.find(
+                      (d) => d.id === t.departmentId,
+                    );
                     return {
                       value: t.id,
                       label: `${t.name} (${tDept ? tDept.name : "Company-wide"})${t.isDefault ? " [Default]" : ""}`,
@@ -1112,7 +1205,8 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
 
               {/* Real-time Template Matching & Snapshot Preview */}
               {(() => {
-                const isManualOverride = selectedTemplateId !== "auto" && Boolean(selectedTemplateId);
+                const isManualOverride =
+                  selectedTemplateId !== "auto" && Boolean(selectedTemplateId);
                 const activeTemplate = isManualOverride
                   ? templates.find((t) => t.id === selectedTemplateId)
                   : matchedPreview?.template;
@@ -1121,11 +1215,16 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
                   return (
                     <div className="p-3.5 bg-[#14161a] border border-white/[0.08] rounded-xl text-xs space-y-1.5">
                       <div className="flex items-center gap-1.5 text-white/90 font-medium">
-                        <Sparkle size={14} weight="fill" className="text-amber-400" />
+                        <Sparkle
+                          size={14}
+                          weight="fill"
+                          className="text-amber-400"
+                        />
                         <span>Snapshot Workflow Preview</span>
                       </div>
                       <p className="text-[#8a8f98] m-0">
-                        No template selected or matched yet. An empty onboarding roadmap will be created.
+                        No template selected or matched yet. An empty onboarding
+                        roadmap will be created.
                       </p>
                     </div>
                   );
@@ -1135,15 +1234,25 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
                   <div className="p-3.5 bg-[#14161a] border border-white/[0.08] rounded-xl text-xs space-y-1.5">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5 text-white/90 font-medium">
-                        <Sparkle size={14} weight="fill" className="text-amber-400" />
+                        <Sparkle
+                          size={14}
+                          weight="fill"
+                          className="text-amber-400"
+                        />
                         <span>Snapshot Workflow Preview</span>
                       </div>
                       <Badge variant={isManualOverride ? "purple" : "green"}>
-                        {isManualOverride ? "Manual Override" : (matchedPreview?.type || "Auto-Matched")}
+                        {isManualOverride
+                          ? "Manual Override"
+                          : matchedPreview?.type || "Auto-Matched"}
                       </Badge>
                     </div>
                     <p className="text-[#8a8f98] m-0">
-                      Assigned template: <strong className="text-white">"{activeTemplate.name}"</strong> ({activeTemplate.tasks?.length || 0} tasks).
+                      Assigned template:{" "}
+                      <strong className="text-white font-medium">
+                        "{activeTemplate.name}"
+                      </strong>{" "}
+                      ({activeTemplate.tasks?.length || 0} tasks).
                       <br />
                       <span className="text-[11px] text-[#8a8f98]">
                         {isManualOverride
@@ -1192,7 +1301,9 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
             onChange={(e) => {
               const newDeptId = e.target.value;
               setTargetDeptId(newDeptId);
-              const matching = users.filter((u) => !u.departmentId || u.departmentId === newDeptId);
+              const matching = users.filter(
+                (u) => !u.departmentId || u.departmentId === newDeptId,
+              );
               if (matching.length > 0) {
                 setMentorUserId(matching[0].id);
               }
@@ -1214,7 +1325,9 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
             }
           />
           <p className="text-[11px] text-[#8a8f98]">
-            Select an employee or manager to enroll into this department's mentor pool. Mentors are automatically assigned to new hires via round-robin.
+            Select an employee or manager to enroll into this department's
+            mentor pool. Mentors are automatically assigned to new hires via
+            round-robin.
           </p>
 
           <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/[0.06]">
@@ -1243,29 +1356,40 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
       <Modal
         isOpen={Boolean(selectedMentee)}
         onClose={() => setSelectedMentee(null)}
-        title={selectedMentee ? `${selectedMentee.name}'s Onboarding Roadmap` : "Onboarding Roadmap"}
+        title={
+          selectedMentee
+            ? `${selectedMentee.name}'s Onboarding Roadmap`
+            : "Onboarding Roadmap"
+        }
         maxWidth="lg"
       >
         {selectedMentee && (
           <div className="space-y-4 text-xs">
             <div className="flex items-center justify-between p-3 rounded-lg bg-[#14161a] border border-white/[0.06]">
               <div>
-                <div className="font-semibold text-white text-sm">{selectedMentee.name}</div>
-                <div className="text-[#8a8f98] text-[11px]">{selectedMentee.email} • {selectedMentee.jobRole}</div>
+                <div className="font-semibold text-white text-sm">
+                  {selectedMentee.name}
+                </div>
+                <div className="text-[#8a8f98] text-[11px]">
+                  {selectedMentee.email} • {selectedMentee.jobRole}
+                </div>
               </div>
               <div className="text-right">
                 <div className="text-emerald-400 font-semibold text-sm">
                   {selectedMentee.progress?.percentComplete ?? 0}% Complete
                 </div>
                 <div className="text-[#62666d] text-[11px]">
-                  {selectedMentee.progress?.completedTasks ?? 0} of {selectedMentee.progress?.totalTasks ?? 0} tasks
+                  {selectedMentee.progress?.completedTasks ?? 0} of{" "}
+                  {selectedMentee.progress?.totalTasks ?? 0} tasks
                 </div>
               </div>
             </div>
 
             <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
-              {(!selectedMentee.tasks || selectedMentee.tasks.length === 0) ? (
-                <div className="text-center py-6 text-[#62666d]">No tasks in this onboarding roadmap.</div>
+              {!selectedMentee.tasks || selectedMentee.tasks.length === 0 ? (
+                <div className="text-center py-6 text-[#62666d]">
+                  No tasks in this onboarding roadmap.
+                </div>
               ) : (
                 selectedMentee.tasks.map((task) => (
                   <div
@@ -1274,22 +1398,33 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
                   >
                     <div className="flex items-center gap-2.5">
                       {task.status === "completed" ? (
-                        <CheckCircle size={17} weight="fill" className="text-emerald-400 shrink-0" />
+                        <CheckCircle
+                          size={17}
+                          weight="fill"
+                          className="text-emerald-400 shrink-0"
+                        />
                       ) : (
                         <Clock size={17} className="text-[#62666d] shrink-0" />
                       )}
                       <div>
-                        <div className={`font-medium text-xs ${task.status === "completed" ? "text-[#8a8f98] line-through" : "text-white/90"}`}>
+                        <div
+                          className={`font-medium text-xs ${task.status === "completed" ? "text-[#8a8f98] line-through" : "text-white/90"}`}
+                        >
                           {task.title}
                         </div>
                         <div className="text-[11px] text-[#62666d] flex items-center gap-2 mt-0.5">
                           <span>{task.category}</span>
                           <span>•</span>
-                          <span className="capitalize">{task.assigneeType}</span>
+                          <span className="capitalize">
+                            {task.assigneeType}
+                          </span>
                           {task.dueDate && (
                             <>
                               <span>•</span>
-                              <span>Due {new Date(task.dueDate).toLocaleDateString()}</span>
+                              <span>
+                                Due{" "}
+                                {new Date(task.dueDate).toLocaleDateString()}
+                              </span>
                             </>
                           )}
                         </div>
@@ -1308,9 +1443,13 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
                           <LinkIcon size={14} />
                         </a>
                       )}
-                      <span className={`px-2 py-0.5 text-[10px] font-medium rounded ${
-                        task.status === "completed" ? "bg-emerald-500/10 text-emerald-400" : "bg-white/[0.06] text-[#8a8f98]"
-                      }`}>
+                      <span
+                        className={`px-2 py-0.5 text-[10px] font-medium rounded ${
+                          task.status === "completed"
+                            ? "bg-emerald-500/10 text-emerald-400"
+                            : "bg-white/[0.06] text-[#8a8f98]"
+                        }`}
+                      >
                         {task.status.replace("_", " ")}
                       </span>
                     </div>
@@ -1320,7 +1459,11 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
             </div>
 
             <div className="flex justify-end pt-3 border-t border-white/[0.06]">
-              <Button variant="ghost" size="sm" onClick={() => setSelectedMentee(null)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedMentee(null)}
+              >
                 Close
               </Button>
             </div>
@@ -1412,9 +1555,11 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
       >
         <div className="space-y-4">
           <p className="text-xs text-[#8a8f98] leading-relaxed">
-            Are you sure you want to delete <strong className="text-white">{deletingDept?.name}</strong>?
+            Are you sure you want to delete{" "}
+            <strong className="text-white">{deletingDept?.name}</strong>?
             <br />
-            Departments can only be deleted if they have no active employees, onboarding templates, or mentors assigned.
+            Departments can only be deleted if they have no active employees,
+            onboarding templates, or mentors assigned.
           </p>
           <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/[0.06]">
             <Button
@@ -1430,7 +1575,9 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
               variant="primary"
               size="md"
               isLoading={isDeletingDept}
-              onClick={() => deletingDept && handleDeleteDepartment(deletingDept)}
+              onClick={() =>
+                deletingDept && handleDeleteDepartment(deletingDept)
+              }
               className="bg-red-600 hover:bg-red-700 text-white border-red-500"
             >
               Delete Department

@@ -49,7 +49,7 @@ export const Modal: React.FC<ModalProps> = ({
         className={`relative w-full ${maxWidthStyles[maxWidth]} bg-[#090a0c] border border-white/[0.08] rounded-xl shadow-2xl p-6 z-10 overflow-hidden flex flex-col max-h-[90vh]`}
       >
         <div className="flex items-center justify-between pb-3.5 border-b border-white/[0.06] mb-5">
-          <h3 className="text-base font-semibold text-[#f7f8f8] tracking-tight">
+          <h3 className="text-base font-medium text-[#f7f8f8] tracking-tight">
             {title}
           </h3>
           <button
