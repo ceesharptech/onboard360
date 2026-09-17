@@ -244,31 +244,75 @@ export class DocumentService {
   }
 
   /**
-   * List all documents for the authenticated company, including chunk counts.
+   * List all documents for the authenticated company with search and pagination, including chunk counts.
    */
-  async listDocuments(companyId: string): Promise<DocumentWithMeta[]> {
-    const docs = await prisma.document.findMany({
-      where: { companyId },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        _count: {
-          select: { chunks: true },
-        },
-      },
-    });
+  async listDocuments(
+    companyId: string,
+    options?: {
+      search?: string;
+      page?: number;
+      limit?: number;
+    }
+  ): Promise<{
+    data: DocumentWithMeta[];
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+      hasNextPage: boolean;
+      hasPrevPage: boolean;
+    };
+  }> {
+    const page = Math.max(1, options?.page || 1);
+    const rawLimit = options?.limit ?? 20;
+    const limit = Math.min(100, Math.max(1, rawLimit));
+    const skip = (page - 1) * limit;
 
-    return docs.map((doc) => ({
-      id: doc.id,
-      companyId: doc.companyId,
-      uploadedBy: doc.uploadedBy,
-      filename: doc.filename,
-      storagePath: doc.storagePath,
-      status: doc.status,
-      failureReason: doc.failureReason,
-      createdAt: doc.createdAt,
-      updatedAt: doc.updatedAt,
-      chunkCount: doc._count.chunks,
-    }));
+    const where: any = { companyId };
+    if (options?.search && options.search.trim()) {
+      where.filename = { contains: options.search.trim(), mode: 'insensitive' };
+    }
+
+    const [total, docs] = await Promise.all([
+      prisma.document.count({ where }),
+      prisma.document.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+        include: {
+          _count: {
+            select: { chunks: true },
+          },
+        },
+      }),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data: docs.map((doc) => ({
+        id: doc.id,
+        companyId: doc.companyId,
+        uploadedBy: doc.uploadedBy,
+        filename: doc.filename,
+        storagePath: doc.storagePath,
+        status: doc.status,
+        failureReason: doc.failureReason,
+        createdAt: doc.createdAt,
+        updatedAt: doc.updatedAt,
+        chunkCount: doc._count.chunks,
+      })),
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    };
   }
 
   /**

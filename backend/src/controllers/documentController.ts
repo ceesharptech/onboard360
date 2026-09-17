@@ -5,6 +5,7 @@
 import { Request, Response, NextFunction } from 'express';
 import documentService from '../services/documentService';
 import { BadRequestError } from '../utils/errors';
+import { paginationQuerySchema } from '../utils/validation';
 
 export class DocumentController {
   /**
@@ -30,12 +31,18 @@ export class DocumentController {
 
   /**
    * GET /documents
-   * HR Admin: List all documents with status and failure reasons.
+   * HR Admin: List all documents with status and failure reasons, supporting pagination and search.
    */
   async list(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const documents = await documentService.listDocuments(req.user!.companyId);
-      res.status(200).json({ documents });
+      const query = paginationQuerySchema.parse(req.query);
+      const result = await documentService.listDocuments(req.user!.companyId, query);
+      res.status(200).json({
+        status: 'ok',
+        data: result.data,
+        documents: result.data,
+        pagination: result.pagination,
+      });
     } catch (err) {
       next(err);
     }

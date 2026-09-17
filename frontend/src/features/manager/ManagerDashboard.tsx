@@ -6,6 +6,7 @@ import type {
   Mentor,
   ManagerAssignedTask,
   MyMenteeResponse,
+  PaginationMeta,
 } from "../../api/endpoints";
 import { employeeApi, departmentApi } from "../../api/endpoints";
 import { useToast } from "../../context/ToastContext";
@@ -13,6 +14,7 @@ import { Button } from "../../components/common/Button";
 import { Badge } from "../../components/common/Badge";
 import { Modal } from "../../components/common/Modal";
 import { Select } from "../../components/common/Select";
+import { Pagination } from "../../components/common/Pagination";
 import { TaskDetailModal } from "../../components/common/TaskDetailModal";
 import { AssignTaskModal } from "../employees/AssignTaskModal";
 import {
@@ -27,6 +29,8 @@ import {
   Square,
   Link as LinkIcon,
   Plus,
+  MagnifyingGlass,
+  X,
 } from "@phosphor-icons/react";
 
 export interface ManagerDashboardProps {
@@ -73,6 +77,53 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
   const [assigneeTargetEmployee, setAssigneeTargetEmployee] = useState<Employee | null>(null);
   const [isAssignTaskOpen, setIsAssignTaskOpen] = useState(false);
 
+  // Roster Search, Filter & Pagination State (Phase 5.3)
+  const [rosterSearch, setRosterSearch] = useState("");
+  const [debouncedRosterSearch, setDebouncedRosterSearch] = useState("");
+  const [rosterStatusFilter, setRosterStatusFilter] = useState<
+    "" | "not_started" | "in_progress" | "complete" | "overdue"
+  >("");
+  const [rosterPage, setRosterPage] = useState(1);
+  const [rosterPagination, setRosterPagination] = useState<PaginationMeta>({
+    total: 0,
+    page: 1,
+    limit: 20,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPrevPage: false,
+  });
+
+  const isInitialMount = React.useRef(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedRosterSearch(rosterSearch);
+      setRosterPage(1);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [rosterSearch]);
+
+  const loadRoster = async (
+    page = rosterPage,
+    search = debouncedRosterSearch,
+    status = rosterStatusFilter
+  ) => {
+    try {
+      const res = await employeeApi.list({
+        page,
+        limit: 20,
+        search: search || undefined,
+        status: status || undefined,
+      });
+      setEmployees(res);
+      if (res.pagination) {
+        setRosterPagination(res.pagination);
+      }
+    } catch (err: unknown) {
+      console.error("Failed to load roster:", err);
+    }
+  };
+
   const handleAdHocTaskAssigned = async (newTask: EmployeeTask) => {
     await fetchAllData();
     if (selectedEmployee && selectedEmployee.id === newTask.employeeId) {
@@ -86,7 +137,12 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
     setError(null);
     try {
       const [empList, mentorList, tasksList, mentees] = await Promise.all([
-        employeeApi.list(),
+        employeeApi.list({
+          page: 1,
+          limit: 20,
+          search: debouncedRosterSearch || undefined,
+          status: rosterStatusFilter || undefined,
+        }),
         user?.departmentId
           ? departmentApi.getMentors(user.departmentId).catch(() => [])
           : Promise.resolve([]),
@@ -95,6 +151,9 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
       ]);
 
       setEmployees(empList);
+      if (empList.pagination) {
+        setRosterPagination(empList.pagination);
+      }
       setDepartmentMentors(mentorList);
       setManagerTasks(tasksList);
       setMenteeData(mentees);
@@ -112,6 +171,14 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
   useEffect(() => {
     fetchAllData();
   }, []);
+
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    loadRoster(rosterPage, debouncedRosterSearch, rosterStatusFilter);
+  }, [rosterPage, debouncedRosterSearch, rosterStatusFilter]);
 
   const openDrilldown = async (emp: Employee) => {
     setModalLoading(true);
@@ -268,7 +335,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
           }`}
         >
           <UsersThree size={14} />
-          <span>Team Roster ({employees.length})</span>
+          <span>Team Roster ({rosterPagination.total})</span>
         </button>
 
         <button
@@ -312,117 +379,187 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
         </div>
       ) : activeTab === "roster" ? (
         /* Team Roster View */
-        <div className="bg-[#0f1013] border border-white/[0.06] rounded-xl overflow-hidden">
-          <div className="p-4 border-b border-white/[0.06] flex items-center justify-between bg-[#111216]">
+        <div className="space-y-3">
+          {/* Search & Filter Bar */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="relative flex-1 max-w-sm">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#8a8f98]">
+                <MagnifyingGlass size={14} />
+              </div>
+              <input
+                type="text"
+                value={rosterSearch}
+                onChange={(e) => setRosterSearch(e.target.value)}
+                placeholder="Search team by name, email, or role..."
+                className="w-full pl-9 pr-8 py-1.5 text-xs bg-[#0f1013] border border-white/[0.08] hover:border-white/[0.15] focus:border-white/30 rounded-md text-[#f7f8f8] placeholder-[#565964] focus:outline-none transition-colors"
+              />
+              {rosterSearch && (
+                <button
+                  type="button"
+                  onClick={() => setRosterSearch("")}
+                  className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-[#8a8f98] hover:text-white"
+                  title="Clear search"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
             <div className="flex items-center gap-2">
-              <UsersThree size={16} className="text-white" />
-              <h2 className="text-xs sm:text-sm font-medium text-[#f7f8f8] m-0">
-                Department Team Members ({employees.length})
-              </h2>
+              <select
+                value={rosterStatusFilter}
+                onChange={(e) => {
+                  setRosterStatusFilter(e.target.value as any);
+                  setRosterPage(1);
+                }}
+                className="px-2.5 py-1.5 text-xs bg-[#0f1013] border border-white/[0.08] hover:border-white/[0.15] focus:border-white/30 rounded-md text-[#f7f8f8] focus:outline-none transition-colors"
+                aria-label="Filter by onboarding status"
+              >
+                <option value="">All Statuses</option>
+                <option value="not_started">Not Started</option>
+                <option value="in_progress">In Progress</option>
+                <option value="complete">Complete</option>
+                <option value="overdue">Overdue</option>
+              </select>
+
+              {(rosterSearch || rosterStatusFilter) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setRosterSearch("");
+                    setRosterStatusFilter("");
+                    setRosterPage(1);
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              )}
             </div>
           </div>
 
-          {employees.length === 0 ? (
-            <div className="text-center py-12 text-[#8a8f98]">
-              <p className="text-sm">
-                No employees currently onboarding in your department.
-              </p>
+          <div className="bg-[#0f1013] border border-white/[0.06] rounded-xl overflow-hidden">
+            <div className="p-4 border-b border-white/[0.06] flex items-center justify-between bg-[#111216]">
+              <div className="flex items-center gap-2">
+                <UsersThree size={16} className="text-white" />
+                <h2 className="text-xs sm:text-sm font-medium text-[#f7f8f8] m-0">
+                  Department Team Members ({rosterPagination.total})
+                </h2>
+              </div>
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-[#f7f8f8]">
-                <thead className="bg-[#111216] text-[#8a8f98] border-b border-white/[0.06] uppercase font-medium text-[11px] tracking-wider select-none">
-                  <tr>
-                    <th className="py-3 px-4">Employee</th>
-                    <th className="py-3 px-4">Role</th>
-                    <th className="py-3 px-4">Mentor</th>
-                    <th className="py-3 px-4">Start Date</th>
-                    <th className="py-3 px-4">Progress</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/[0.04]">
-                  {employees.map((emp) => {
-                    const percent = emp.progress?.percentComplete ?? 0;
-                    const completed = emp.progress?.completedTasks ?? 0;
-                    const total = emp.progress?.totalTasks ?? 0;
-                    const overdue = emp.progress?.overdueTasks ?? 0;
 
-                    return (
-                      <tr
-                        key={emp.id}
-                        className="hover:bg-white/[0.02] transition-colors"
-                      >
-                        <td className="py-3 px-4">
-                          <div className="font-medium text-[#f7f8f8]">
-                            {emp.name}
-                          </div>
-                          <div className="text-[#8a8f98] text-[11px] font-mono">
-                            {emp.email}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <Badge variant="white">{emp.jobRole}</Badge>
-                        </td>
-                        <td className="py-3 px-4 text-[#8a8f98]">
-                          {emp.mentor ? (
-                            emp.mentor.email
-                          ) : (
-                            <span className="text-[#5a5e6b]">None</span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 text-[#8a8f98] font-mono">
-                          {emp.startDate
-                            ? new Date(emp.startDate).toLocaleDateString()
-                            : "N/A"}
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2 max-w-[140px]">
-                            <div className="w-full h-1.5 bg-white/[0.08] rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-white rounded-full transition-all"
-                                style={{ width: `${percent}%` }}
-                              />
+            {employees.length === 0 ? (
+              <div className="text-center py-12 text-[#8a8f98]">
+                <p className="text-sm">
+                  {rosterSearch || rosterStatusFilter
+                    ? "No employees match your search or filter criteria."
+                    : "No employees currently onboarding in your department."}
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-[#f7f8f8]">
+                  <thead className="bg-[#111216] text-[#8a8f98] border-b border-white/[0.06] uppercase font-medium text-[11px] tracking-wider select-none">
+                    <tr>
+                      <th className="py-3 px-4">Employee</th>
+                      <th className="py-3 px-4">Role</th>
+                      <th className="py-3 px-4">Mentor</th>
+                      <th className="py-3 px-4">Start Date</th>
+                      <th className="py-3 px-4">Progress</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/[0.04]">
+                    {employees.map((emp) => {
+                      const percent = emp.progress?.percentComplete ?? 0;
+                      const completed = emp.progress?.completedTasks ?? 0;
+                      const total = emp.progress?.totalTasks ?? 0;
+                      const overdue = emp.progress?.overdueTasks ?? 0;
+
+                      return (
+                        <tr
+                          key={emp.id}
+                          className="hover:bg-white/[0.02] transition-colors"
+                        >
+                          <td className="py-3 px-4">
+                            <div className="font-medium text-[#f7f8f8]">
+                              {emp.name}
                             </div>
-                            <span className="text-[11px] font-mono font-medium text-[#f7f8f8]">
-                              {percent}%
-                            </span>
-                          </div>
-                          <div className="text-[10px] text-[#5a5e6b] mt-0.5">
-                            {completed}/{total} tasks{" "}
-                            {overdue > 0 && `• ${overdue} overdue`}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              icon={<Plus size={13} />}
-                              onClick={() => {
-                                setAssigneeTargetEmployee(emp);
-                                setIsAssignTaskOpen(true);
-                              }}
-                            >
-                              Assign Task
-                            </Button>
-                            <Button
-                              variant="utility"
-                              size="sm"
-                              icon={<ListBullets size={14} />}
-                              onClick={() => openDrilldown(emp)}
-                            >
-                              Inspect Tasks
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+                            <div className="text-[#8a8f98] text-[11px] font-mono">
+                              {emp.email}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <Badge variant="white">{emp.jobRole}</Badge>
+                          </td>
+                          <td className="py-3 px-4 text-[#8a8f98]">
+                            {emp.mentor ? (
+                              emp.mentor.email
+                            ) : (
+                              <span className="text-[#5a5e6b]">None</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-[#8a8f98] font-mono">
+                            {emp.startDate
+                              ? new Date(emp.startDate).toLocaleDateString()
+                              : "N/A"}
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2 max-w-[140px]">
+                              <div className="w-full h-1.5 bg-white/[0.08] rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-white rounded-full transition-all"
+                                  style={{ width: `${percent}%` }}
+                                />
+                              </div>
+                              <span className="text-[11px] font-mono font-medium text-[#f7f8f8]">
+                                {percent}%
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-[#5a5e6b] mt-0.5">
+                              {completed}/{total} tasks{" "}
+                              {overdue > 0 && `• ${overdue} overdue`}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                variant="utility"
+                                size="sm"
+                                icon={<Plus size={13} />}
+                                onClick={() => {
+                                  setAssigneeTargetEmployee(emp);
+                                  setIsAssignTaskOpen(true);
+                                }}
+                              >
+                                Assign Task
+                              </Button>
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                icon={<ListBullets size={14} />}
+                                onClick={() => openDrilldown(emp)}
+                              >
+                                Inspect Tasks
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <Pagination
+              currentPage={rosterPage}
+              totalPages={rosterPagination.totalPages}
+              totalItems={rosterPagination.total}
+              pageSize={rosterPagination.limit}
+              onPageChange={(newPage) => setRosterPage(newPage)}
+            />
+          </div>
         </div>
       ) : activeTab === "my-tasks" ? (
         /* "My Assigned Tasks" View (Fix 2 Requirement) */

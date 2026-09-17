@@ -167,8 +167,18 @@ export const updateEmployeeTaskSchema = z.object({
 
 export const paginationQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(20),
+  limit: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(20)
+    .transform((val) => Math.min(val, 100)),
+  search: z.string().trim().optional(),
   departmentId: z.string().uuid().optional(),
+});
+
+export const employeeListQuerySchema = paginationQuerySchema.extend({
+  status: z.enum(['not_started', 'in_progress', 'complete', 'overdue']).optional(),
 });
 
 export const createAdHocTaskSchema = z.object({
@@ -215,3 +225,4 @@ export type UpdateEmployeeInput = z.infer<typeof updateEmployeeSchema>;
 export type UpdateEmployeeTaskInput = z.infer<typeof updateEmployeeTaskSchema>;
 export type CreateAdHocTaskInput = z.infer<typeof createAdHocTaskSchema>;
 export type PaginationQueryInput = z.infer<typeof paginationQuerySchema>;
+export type EmployeeListQueryInput = z.infer<typeof employeeListQuerySchema>;

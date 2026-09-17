@@ -5,6 +5,7 @@ import type {
   Mentor,
   OnboardingTemplate,
   User,
+  PaginationMeta,
 } from "../../api/endpoints";
 import {
   employeeApi,
@@ -18,6 +19,7 @@ import { Badge } from "../../components/common/Badge";
 import { Modal } from "../../components/common/Modal";
 import { Input } from "../../components/common/Input";
 import { Select } from "../../components/common/Select";
+import { Pagination } from "../../components/common/Pagination";
 import { useToast } from "../../context/ToastContext";
 import { EmployeeDetailModal } from "./EmployeeDetailModal";
 import {
@@ -37,6 +39,8 @@ import {
   Clock,
   Link as LinkIcon,
   PencilSimple,
+  MagnifyingGlass,
+  X,
 } from "@phosphor-icons/react";
 
 export interface HrAdminDashboardProps {
@@ -109,6 +113,56 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
   const [detailEmployeeId, setDetailEmployeeId] = useState<string | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
+  // Employee Search, Filter & Pagination State (Phase 5.3)
+  const [empSearch, setEmpSearch] = useState("");
+  const [debouncedEmpSearch, setDebouncedEmpSearch] = useState("");
+  const [selectedDeptFilter, setSelectedDeptFilter] = useState("");
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<
+    "" | "not_started" | "in_progress" | "complete" | "overdue"
+  >("");
+  const [empPage, setEmpPage] = useState(1);
+  const [empPagination, setEmpPagination] = useState<PaginationMeta>({
+    total: 0,
+    page: 1,
+    limit: 20,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPrevPage: false,
+  });
+
+  const isInitialMount = React.useRef(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedEmpSearch(empSearch);
+      setEmpPage(1);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [empSearch]);
+
+  const loadEmployees = async (
+    page = empPage,
+    search = debouncedEmpSearch,
+    dept = selectedDeptFilter,
+    status = selectedStatusFilter
+  ) => {
+    try {
+      const res = await employeeApi.list({
+        page,
+        limit: 20,
+        search: search || undefined,
+        departmentId: dept || undefined,
+        status: status || undefined,
+      });
+      setEmployees(res);
+      if (res.pagination) {
+        setEmpPagination(res.pagination);
+      }
+    } catch (err: unknown) {
+      console.error("Failed to load employees:", err);
+    }
+  };
+
   const generateTempPassword = () => {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
     let pwd = "Pass#";
@@ -123,13 +177,22 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
     setError(null);
     try {
       const [empList, deptList, tmplList, userList] = await Promise.all([
-        employeeApi.list(),
+        employeeApi.list({
+          page: 1,
+          limit: 20,
+          search: debouncedEmpSearch || undefined,
+          departmentId: selectedDeptFilter || undefined,
+          status: selectedStatusFilter || undefined,
+        }),
         departmentApi.list(),
         templateApi.list(),
         userApi.list().catch(() => []),
       ]);
 
       setEmployees(empList);
+      if (empList.pagination) {
+        setEmpPagination(empList.pagination);
+      }
       setDepartments(deptList);
       setTemplates(tmplList);
       setUsers(userList);
@@ -163,6 +226,14 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    loadEmployees(empPage, debouncedEmpSearch, selectedDeptFilter, selectedStatusFilter);
+  }, [empPage, debouncedEmpSearch, selectedDeptFilter, selectedStatusFilter]);
 
   const toggleMentorExpanded = (mentorId: string) => {
     setExpandedMentorIds((prev) => ({
@@ -428,7 +499,7 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
               : "text-[#8a8f98] hover:text-white hover:bg-white/[0.04]"
           }`}
         >
-          Company Employees ({employees.length})
+          Company Employees ({empPagination.total})
         </button>
         <button
           onClick={() => setActiveTab("departments")}
@@ -450,95 +521,193 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
           </div>
         </div>
       ) : activeTab === "employees" ? (
-        /* Employees Table Card */
-        <Card className="p-0 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-[#f7f8f8]">
-              <thead className="bg-[#14161a] text-[#8a8f98] border-b border-white/[0.06] uppercase font-medium text-[11px] tracking-wider">
-                <tr>
-                  <th className="py-3 px-4">Employee</th>
-                  <th className="py-3 px-4">Department</th>
-                  <th className="py-3 px-4">Role</th>
-                  <th className="py-3 px-4">Manager</th>
-                  <th className="py-3 px-4">Assigned Mentor</th>
-                  <th className="py-3 px-4">Start Date</th>
-                  <th className="py-3 px-4">Progress</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.06]">
-                {employees.map((emp) => {
-                  const percent = emp.progress?.percentComplete ?? 0;
-                  const completed = emp.progress?.completedTasks ?? 0;
-                  const total = emp.progress?.totalTasks ?? 0;
+        <div className="space-y-3">
+          {/* Search & Filter Bar */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="relative flex-1 max-w-sm">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#8a8f98]">
+                <MagnifyingGlass size={14} />
+              </div>
+              <input
+                type="text"
+                value={empSearch}
+                onChange={(e) => setEmpSearch(e.target.value)}
+                placeholder="Search by name, email, or role..."
+                className="w-full pl-9 pr-8 py-1.5 text-xs bg-[#0f1013] border border-white/[0.08] hover:border-white/[0.15] focus:border-white/30 rounded-md text-[#f7f8f8] placeholder-[#565964] focus:outline-none transition-colors"
+              />
+              {empSearch && (
+                <button
+                  type="button"
+                  onClick={() => setEmpSearch("")}
+                  className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-[#8a8f98] hover:text-white"
+                  title="Clear search"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
 
-                  return (
-                    <tr
-                      key={emp.id}
-                      onClick={() => {
-                        setDetailEmployeeId(emp.id);
-                        setIsDetailModalOpen(true);
-                      }}
-                      className="hover:bg-[#14161a]/80 transition-colors cursor-pointer group"
-                      title="Click to view full onboarding roadmap & assign tasks"
-                    >
-                      <td className="py-3.5 px-4">
-                        <div className="font-medium text-white">{emp.name}</div>
-                        <div className="text-[#8a8f98] text-[11px] mt-0.5">
-                          {emp.email}
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 text-[#8a8f98]">
-                        {emp.department?.name || "N/A"}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-white/[0.06] text-white/90 border border-white/[0.08]">
-                          {emp.jobRole}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-[#8a8f98]">
-                        {emp.manager ? (
-                          <span className="text-white/90 font-medium">
-                            {emp.manager.email}
-                          </span>
-                        ) : (
-                          <span className="text-[#565964]">None</span>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4 text-[#8a8f98]">
-                        {emp.mentor ? (
-                          <span className="text-emerald-400 font-medium">
-                            {emp.mentor.email}
-                          </span>
-                        ) : (
-                          <span className="text-[#565964]">Unassigned</span>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4 text-[#8a8f98]">
-                        {emp.startDate ? new Date(emp.startDate).toLocaleDateString() : "N/A"}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-2 max-w-[130px]">
-                          <div className="w-full h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-white rounded-full transition-all duration-300"
-                              style={{ width: `${percent}%` }}
-                            />
-                          </div>
-                          <span className="text-[11px] font-medium text-white/90">
-                            {percent}%
-                          </span>
-                        </div>
-                        <div className="text-[10px] text-[#62666d] mt-0.5">
-                          {completed}/{total} completed
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                value={selectedDeptFilter}
+                onChange={(e) => {
+                  setSelectedDeptFilter(e.target.value);
+                  setEmpPage(1);
+                }}
+                className="px-2.5 py-1.5 text-xs bg-[#0f1013] border border-white/[0.08] hover:border-white/[0.15] focus:border-white/30 rounded-md text-[#f7f8f8] focus:outline-none transition-colors"
+                aria-label="Filter by department"
+              >
+                <option value="">All Departments</option>
+                {departments.map((dept) => (
+                  <option key={dept.id} value={dept.id}>
+                    {dept.name}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={selectedStatusFilter}
+                onChange={(e) => {
+                  setSelectedStatusFilter(e.target.value as any);
+                  setEmpPage(1);
+                }}
+                className="px-2.5 py-1.5 text-xs bg-[#0f1013] border border-white/[0.08] hover:border-white/[0.15] focus:border-white/30 rounded-md text-[#f7f8f8] focus:outline-none transition-colors"
+                aria-label="Filter by onboarding status"
+              >
+                <option value="">All Statuses</option>
+                <option value="not_started">Not Started</option>
+                <option value="in_progress">In Progress</option>
+                <option value="complete">Complete</option>
+                <option value="overdue">Overdue</option>
+              </select>
+
+              {(empSearch || selectedDeptFilter || selectedStatusFilter) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setEmpSearch("");
+                    setSelectedDeptFilter("");
+                    setSelectedStatusFilter("");
+                    setEmpPage(1);
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              )}
+            </div>
           </div>
-        </Card>
+
+          {/* Employees Table Card */}
+          <Card className="p-0 overflow-hidden">
+            {employees.length === 0 ? (
+              <div className="text-center py-12 px-4 text-[#8a8f98]">
+                <Users size={32} className="mx-auto mb-2 text-[#565964]" />
+                <p className="text-sm font-medium text-white mb-1">No employees found</p>
+                <p className="text-xs max-w-sm mx-auto text-[#8a8f98]">
+                  {empSearch || selectedDeptFilter || selectedStatusFilter
+                    ? "No employees match the current search query or filter criteria."
+                    : "No employees added yet. Click 'Add Employee / User' to get started."}
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-[#f7f8f8]">
+                  <thead className="bg-[#14161a] text-[#8a8f98] border-b border-white/[0.06] uppercase font-medium text-[11px] tracking-wider">
+                    <tr>
+                      <th className="py-3 px-4">Employee</th>
+                      <th className="py-3 px-4">Department</th>
+                      <th className="py-3 px-4">Role</th>
+                      <th className="py-3 px-4">Manager</th>
+                      <th className="py-3 px-4">Assigned Mentor</th>
+                      <th className="py-3 px-4">Start Date</th>
+                      <th className="py-3 px-4">Progress</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/[0.06]">
+                    {employees.map((emp) => {
+                      const percent = emp.progress?.percentComplete ?? 0;
+                      const completed = emp.progress?.completedTasks ?? 0;
+                      const total = emp.progress?.totalTasks ?? 0;
+
+                      return (
+                        <tr
+                          key={emp.id}
+                          onClick={() => {
+                            setDetailEmployeeId(emp.id);
+                            setIsDetailModalOpen(true);
+                          }}
+                          className="hover:bg-[#14161a]/80 transition-colors cursor-pointer group"
+                          title="Click to view full onboarding roadmap & assign tasks"
+                        >
+                          <td className="py-3.5 px-4">
+                            <div className="font-medium text-white">{emp.name}</div>
+                            <div className="text-[#8a8f98] text-[11px] mt-0.5">
+                              {emp.email}
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4 text-[#8a8f98]">
+                            {emp.department?.name || "N/A"}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-white/[0.06] text-white/90 border border-white/[0.08]">
+                              {emp.jobRole}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-[#8a8f98]">
+                            {emp.manager ? (
+                              <span className="text-white/90 font-medium">
+                                {emp.manager.email}
+                              </span>
+                            ) : (
+                              <span className="text-[#565964]">None</span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4 text-[#8a8f98]">
+                            {emp.mentor ? (
+                              <span className="text-emerald-400 font-medium">
+                                {emp.mentor.email}
+                              </span>
+                            ) : (
+                              <span className="text-[#565964]">Unassigned</span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4 text-[#8a8f98]">
+                            {emp.startDate ? new Date(emp.startDate).toLocaleDateString() : "N/A"}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-2 max-w-[130px]">
+                              <div className="w-full h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-white rounded-full transition-all duration-300"
+                                  style={{ width: `${percent}%` }}
+                                />
+                              </div>
+                              <span className="text-[11px] font-medium text-white/90">
+                                {percent}%
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-[#62666d] mt-0.5">
+                              {completed}/{total} completed
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <Pagination
+              currentPage={empPage}
+              totalPages={empPagination.totalPages}
+              totalItems={empPagination.total}
+              pageSize={empPagination.limit}
+              onPageChange={(newPage) => setEmpPage(newPage)}
+            />
+          </Card>
+        </div>
       ) : (
         /* Departments & Mentor Pools */
         <div className="space-y-4">

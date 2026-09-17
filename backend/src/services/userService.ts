@@ -87,30 +87,65 @@ export class UserService {
   }
 
   /**
-   * Lists users within the authenticated user's company (for mentor enrollment and directory selection).
+   * Lists users within the authenticated user's company with search and pagination.
    */
-  async listUsers(companyId: string, departmentId?: string) {
+  async listUsers(
+    companyId: string,
+    options?: {
+      departmentId?: string;
+      search?: string;
+      page?: number;
+      limit?: number;
+    }
+  ) {
+    const page = Math.max(1, options?.page || 1);
+    const rawLimit = options?.limit ?? 20;
+    const limit = Math.min(100, Math.max(1, rawLimit));
+    const skip = (page - 1) * limit;
+
     const where: Record<string, unknown> = { companyId };
-    if (departmentId) {
-      where.departmentId = departmentId;
+    if (options?.departmentId) {
+      where.departmentId = options.departmentId;
+    }
+    if (options?.search && options.search.trim()) {
+      where.email = { contains: options.search.trim(), mode: 'insensitive' };
     }
 
-    return prisma.user.findMany({
-      where,
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        departmentId: true,
-        department: {
-          select: { id: true, name: true },
+    const [total, users] = await Promise.all([
+      prisma.user.count({ where }),
+      prisma.user.findMany({
+        where,
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          departmentId: true,
+          department: {
+            select: { id: true, name: true },
+          },
+          employee: {
+            select: { id: true, name: true, jobRole: true },
+          },
         },
-        employee: {
-          select: { id: true, name: true, jobRole: true },
-        },
+        orderBy: [{ role: 'asc' }, { email: 'asc' }],
+      }),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data: users,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
       },
-      orderBy: [{ role: 'asc' }, { email: 'asc' }],
-    });
+    };
   }
 }
 

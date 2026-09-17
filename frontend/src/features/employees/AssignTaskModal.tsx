@@ -282,8 +282,9 @@ export const AssignTaskModal: React.FC<AssignTaskModalProps> = ({
             size="sm"
             disabled={isSubmitting}
             icon={<Plus size={14} />}
+            isLoading={isSubmitting}
           >
-            {isSubmitting ? "Assigning Task..." : "Assign Task"}
+            Assign Task
           </Button>
         </div>
       </form>

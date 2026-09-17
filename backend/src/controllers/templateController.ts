@@ -4,6 +4,7 @@ import {
   createTemplateSchema,
   updateTemplateSchema,
   reorderTemplateTasksSchema,
+  paginationQuerySchema,
 } from '../utils/validation';
 import { scopeToDepartment } from '../middleware/auth';
 
@@ -41,19 +42,27 @@ export class TemplateController {
   async list(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const companyId = req.user!.companyId;
+      const query = paginationQuerySchema.parse(req.query);
       let departmentIdFilter: string | undefined;
 
       if (req.user!.role === 'manager') {
         // Manager only sees their own department's templates
         departmentIdFilter = req.user!.departmentId ?? undefined;
-      } else if (req.query.departmentId && typeof req.query.departmentId === 'string') {
-        departmentIdFilter = req.query.departmentId;
+      } else if (query.departmentId) {
+        departmentIdFilter = query.departmentId;
       }
 
-      const templates = await templateService.listTemplates(companyId, departmentIdFilter);
+      const result = await templateService.listTemplates(companyId, {
+        departmentId: departmentIdFilter,
+        search: query.search,
+        page: query.page,
+        limit: query.limit,
+      });
+
       res.status(200).json({
         status: 'ok',
-        data: templates,
+        data: result.data,
+        pagination: result.pagination,
       });
     } catch (error) {
       next(error);

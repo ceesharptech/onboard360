@@ -140,14 +140,23 @@ export interface Employee {
   createdAt?: string;
 }
 
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+export type PaginatedList<T> = T[] & {
+  pagination?: PaginationMeta;
+  documents?: T[];
+};
+
 export interface PaginatedResult<T> {
   data: T[];
-  pagination: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
+  pagination: PaginationMeta;
 }
 
 export interface LoginResult {
@@ -179,14 +188,27 @@ export const authApi = {
 };
 
 export const userApi = {
-  list: (departmentId?: string) => {
-    const query = departmentId ? `?departmentId=${encodeURIComponent(departmentId)}` : '';
-    return apiRequest<User[]>(`/users${query}`);
+  list: (params?: { departmentId?: string; page?: number; limit?: number; search?: string } | string) => {
+    const opts = typeof params === 'string' ? { departmentId: params } : (params || {});
+    const searchParams = new URLSearchParams();
+    if (opts.departmentId) searchParams.set('departmentId', opts.departmentId);
+    if (opts.page) searchParams.set('page', opts.page.toString());
+    if (opts.limit) searchParams.set('limit', opts.limit.toString());
+    if (opts.search) searchParams.set('search', opts.search);
+    const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    return apiRequest<PaginatedList<User>>(`/users${query}`);
   },
 };
 
 export const departmentApi = {
-  list: () => apiRequest<Department[]>('/departments'),
+  list: (params: { page?: number; limit?: number; search?: string } = {}) => {
+    const searchParams = new URLSearchParams();
+    if (params.page) searchParams.set('page', params.page.toString());
+    if (params.limit) searchParams.set('limit', params.limit.toString());
+    if (params.search) searchParams.set('search', params.search);
+    const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    return apiRequest<PaginatedList<Department>>(`/departments${query}`);
+  },
   getOne: (id: string) => apiRequest<Department>(`/departments/${id}`),
   create: (name: string) =>
     apiRequest<Department>('/departments', {
@@ -215,9 +237,15 @@ export const departmentApi = {
 };
 
 export const templateApi = {
-  list: (departmentId?: string) => {
-    const query = departmentId ? `?departmentId=${encodeURIComponent(departmentId)}` : '';
-    return apiRequest<OnboardingTemplate[]>(`/templates${query}`);
+  list: (params?: { departmentId?: string; page?: number; limit?: number; search?: string } | string) => {
+    const opts = typeof params === 'string' ? { departmentId: params } : (params || {});
+    const searchParams = new URLSearchParams();
+    if (opts.departmentId) searchParams.set('departmentId', opts.departmentId);
+    if (opts.page) searchParams.set('page', opts.page.toString());
+    if (opts.limit) searchParams.set('limit', opts.limit.toString());
+    if (opts.search) searchParams.set('search', opts.search);
+    const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    return apiRequest<PaginatedList<OnboardingTemplate>>(`/templates${query}`);
   },
   getOne: (id: string) => apiRequest<OnboardingTemplate>(`/templates/${id}`),
   create: (data: Partial<OnboardingTemplate>) =>
@@ -242,14 +270,21 @@ export const templateApi = {
 };
 
 export const employeeApi = {
-  list: (params: { departmentId?: string; page?: number; limit?: number; search?: string } = {}) => {
+  list: (params: {
+    departmentId?: string;
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: 'not_started' | 'in_progress' | 'complete' | 'overdue';
+  } = {}) => {
     const searchParams = new URLSearchParams();
     if (params.departmentId) searchParams.set('departmentId', params.departmentId);
     if (params.page) searchParams.set('page', params.page.toString());
     if (params.limit) searchParams.set('limit', params.limit.toString());
     if (params.search) searchParams.set('search', params.search);
+    if (params.status) searchParams.set('status', params.status);
     const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
-    return apiRequest<Employee[]>(`/employees${query}`);
+    return apiRequest<PaginatedList<Employee>>(`/employees${query}`);
   },
   getOne: (id: string) => apiRequest<Employee>(`/employees/${id}`),
   create: (data: {
@@ -330,7 +365,14 @@ export interface RetrievedChunkItem {
 }
 
 export const documentApi = {
-  list: () => apiRequest<{ documents: DocumentItem[] }>('/documents'),
+  list: (params: { page?: number; limit?: number; search?: string } = {}) => {
+    const searchParams = new URLSearchParams();
+    if (params.page) searchParams.set('page', params.page.toString());
+    if (params.limit) searchParams.set('limit', params.limit.toString());
+    if (params.search) searchParams.set('search', params.search);
+    const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    return apiRequest<PaginatedList<DocumentItem>>(`/documents${query}`);
+  },
   getOne: (id: string) => apiRequest<{ document: DocumentItem }>(`/documents/${id}`),
   upload: (file: File) => {
     const formData = new FormData();

@@ -274,10 +274,11 @@ export class EmployeeService {
       page?: number;
       limit?: number;
       search?: string;
+      status?: 'not_started' | 'in_progress' | 'complete' | 'overdue';
     } = {}
   ) {
     const page = options.page && options.page > 0 ? options.page : 1;
-    const limit = options.limit && options.limit > 0 ? options.limit : 20;
+    const limit = Math.min(options.limit && options.limit > 0 ? options.limit : 20, 100);
     const skip = (page - 1) * limit;
 
     const where: any = { companyId };
@@ -293,6 +294,36 @@ export class EmployeeService {
         { email: { contains: options.search, mode: 'insensitive' } },
         { jobRole: { contains: options.search, mode: 'insensitive' } },
       ];
+    }
+    if (options.status) {
+      const now = new Date();
+      if (options.status === 'overdue') {
+        where.tasks = {
+          some: {
+            status: { not: 'completed' },
+            dueDate: { lt: now },
+          },
+        };
+      } else if (options.status === 'complete') {
+        where.tasks = {
+          none: {
+            status: { not: 'completed' },
+          },
+          some: {},
+        };
+      } else if (options.status === 'in_progress') {
+        where.AND = where.AND || [];
+        where.AND.push(
+          { tasks: { some: { status: 'completed' } } },
+          { tasks: { some: { status: { not: 'completed' } } } }
+        );
+      } else if (options.status === 'not_started') {
+        where.tasks = {
+          none: {
+            status: 'completed',
+          },
+        };
+      }
     }
 
     const [total, employees] = await Promise.all([
@@ -349,13 +380,17 @@ export class EmployeeService {
       };
     });
 
+    const totalPages = Math.ceil(total / limit);
+
     return {
       data: enrichedEmployees,
       pagination: {
         total,
         page,
         limit,
-        totalPages: Math.ceil(total / limit),
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
       },
     };
   }

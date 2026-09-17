@@ -225,7 +225,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                     </span>
                     <span className="flex-1 truncate">{item.label}</span>
                     {item.badge && (
-                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-indigo-500/20 font-sans text-indigo-300 border border-indigo-500/30">
                         {item.badge}
                       </span>
                     )}

@@ -60,29 +60,77 @@ export class TemplateService {
   }
 
   /**
-   * List templates in company, optionally filtered by department.
+   * List templates in company, optionally filtered by department, search, and paginated.
    */
-  async listTemplates(companyId: string, departmentId?: string | null) {
-    const whereClause: { companyId: string; departmentId?: string } = { companyId };
+  async listTemplates(
+    companyId: string,
+    options: {
+      departmentId?: string | null;
+      search?: string;
+      page?: number;
+      limit?: number;
+    } | string = {}
+  ) {
+    let departmentId: string | null | undefined;
+    let search: string | undefined;
+    let page = 1;
+    let limit = 20;
+
+    if (typeof options === 'string') {
+      departmentId = options;
+    } else {
+      departmentId = options.departmentId;
+      search = options.search;
+      page = options.page && options.page > 0 ? options.page : 1;
+      limit = Math.min(options.limit && options.limit > 0 ? options.limit : 20, 100);
+    }
+
+    const skip = (page - 1) * limit;
+    const whereClause: any = { companyId };
     if (departmentId) {
       whereClause.departmentId = departmentId;
     }
+    if (search) {
+      whereClause.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { jobRole: { contains: search, mode: 'insensitive' } },
+      ];
+    }
 
-    return prisma.onboardingTemplate.findMany({
-      where: whereClause,
-      include: {
-        department: {
-          select: { id: true, name: true },
+    const [total, templates] = await Promise.all([
+      prisma.onboardingTemplate.count({ where: whereClause }),
+      prisma.onboardingTemplate.findMany({
+        where: whereClause,
+        skip,
+        take: limit,
+        include: {
+          department: {
+            select: { id: true, name: true },
+          },
+          tasks: {
+            orderBy: { orderIndex: 'asc' },
+          },
+          _count: {
+            select: { tasks: true },
+          },
         },
-        tasks: {
-          orderBy: { orderIndex: 'asc' },
-        },
-        _count: {
-          select: { tasks: true },
-        },
+        orderBy: [{ isDefault: 'desc' }, { name: 'asc' }],
+      }),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data: templates,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
       },
-      orderBy: [{ isDefault: 'desc' }, { name: 'asc' }],
-    });
+    };
   }
 
   /**

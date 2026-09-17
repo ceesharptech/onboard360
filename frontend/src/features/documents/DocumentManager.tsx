@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import type { DocumentItem, RetrievedChunkItem } from "../../api/endpoints";
+import type { DocumentItem, RetrievedChunkItem, PaginationMeta } from "../../api/endpoints";
 import { documentApi } from "../../api/endpoints";
 import { useToast } from "../../context/ToastContext";
 import { Card } from "../../components/common/Card";
@@ -7,6 +7,7 @@ import { Button } from "../../components/common/Button";
 import { Badge } from "../../components/common/Badge";
 import { Modal } from "../../components/common/Modal";
 import { Input } from "../../components/common/Input";
+import { Pagination } from "../../components/common/Pagination";
 import {
   FileText,
   FileDoc,
@@ -19,6 +20,7 @@ import {
   WarningCircle,
   Clock,
   Sparkle,
+  X,
 } from "@phosphor-icons/react";
 
 export const DocumentManager: React.FC = () => {
@@ -49,11 +51,42 @@ export const DocumentManager: React.FC = () => {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
 
-  const fetchDocuments = async () => {
+  // Search & Pagination State (Phase 5.3)
+  const [docSearch, setDocSearch] = useState("");
+  const [debouncedDocSearch, setDebouncedDocSearch] = useState("");
+  const [docPage, setDocPage] = useState(1);
+  const [docPagination, setDocPagination] = useState<PaginationMeta>({
+    total: 0,
+    page: 1,
+    limit: 20,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPrevPage: false,
+  });
+
+  const isInitialMount = React.useRef(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedDocSearch(docSearch);
+      setDocPage(1);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [docSearch]);
+
+  const fetchDocuments = async (page = docPage, search = debouncedDocSearch) => {
     try {
       setError(null);
-      const res = await documentApi.list();
-      setDocuments(res.documents);
+      const res = await documentApi.list({
+        page,
+        limit: 20,
+        search: search || undefined,
+      });
+      const docs = res.documents || (Array.isArray(res) ? res : []);
+      setDocuments(docs);
+      if (res.pagination) {
+        setDocPagination(res.pagination);
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load documents");
     } finally {
@@ -65,6 +98,14 @@ export const DocumentManager: React.FC = () => {
     fetchDocuments();
   }, []);
 
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    fetchDocuments(docPage, debouncedDocSearch);
+  }, [docPage, debouncedDocSearch]);
+
   // Poll for document status transitions while any document is pending or processing
   useEffect(() => {
     const hasActiveProcessing = documents.some(
@@ -75,13 +116,21 @@ export const DocumentManager: React.FC = () => {
 
     const interval = setInterval(() => {
       documentApi
-        .list()
-        .then((res) => setDocuments(res.documents))
+        .list({
+          page: docPage,
+          limit: 20,
+          search: debouncedDocSearch || undefined,
+        })
+        .then((res) => {
+          const docs = res.documents || (Array.isArray(res) ? res : []);
+          setDocuments(docs);
+          if (res.pagination) setDocPagination(res.pagination);
+        })
         .catch(() => {});
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [documents]);
+  }, [documents, docPage, debouncedDocSearch]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUploadError(null);
@@ -229,7 +278,7 @@ export const DocumentManager: React.FC = () => {
           variant="secondary"
           size="sm"
           icon={<ArrowsClockwise size={14} />}
-          onClick={fetchDocuments}
+          onClick={() => fetchDocuments()}
           isLoading={isLoading}
         >
           Refresh Status
@@ -317,12 +366,35 @@ export const DocumentManager: React.FC = () => {
 
       {/* Documents List Card */}
       <Card className="p-0 overflow-hidden">
-        <div className="p-4 border-b border-white/[0.06] flex items-center justify-between bg-[#0f1013]">
+        <div className="p-3.5 border-b border-white/[0.06] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0f1013]">
           <div className="flex items-center gap-2">
             <FileText size={16} className="text-white/80" />
             <h3 className="text-xs font-semibold uppercase tracking-wider text-[#8a8f98] m-0">
-              Knowledge Base Repository ({documents.length})
+              Knowledge Base Repository ({docPagination.total})
             </h3>
+          </div>
+
+          <div className="relative max-w-xs w-full">
+            <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-[#8a8f98]">
+              <MagnifyingGlass size={13} />
+            </div>
+            <input
+              type="text"
+              value={docSearch}
+              onChange={(e) => setDocSearch(e.target.value)}
+              placeholder="Search filename..."
+              className="w-full pl-8 pr-7 py-1 text-xs bg-[#14161a] border border-white/[0.08] hover:border-white/[0.15] focus:border-white/30 rounded-md text-[#f7f8f8] placeholder-[#565964] focus:outline-none transition-colors"
+            />
+            {docSearch && (
+              <button
+                type="button"
+                onClick={() => setDocSearch("")}
+                className="absolute inset-y-0 right-0 pr-2 flex items-center text-[#8a8f98] hover:text-white"
+                title="Clear search"
+              >
+                <X size={11} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -339,11 +411,12 @@ export const DocumentManager: React.FC = () => {
           <div className="text-center py-12 px-4">
             <FileText size={32} className="text-[#5a5e6b] mx-auto mb-3" />
             <h4 className="text-sm font-semibold text-white mb-1">
-              No Documents Uploaded
+              No Documents Found
             </h4>
             <p className="text-xs text-[#8a8f98] max-w-sm mx-auto">
-              Upload company leave policies, IT setup guides, or manuals above
-              to populate the knowledge base.
+              {docSearch
+                ? `No documents matching "${docSearch}".`
+                : "Upload company leave policies, IT setup guides, or manuals above to populate the knowledge base."}
             </p>
           </div>
         ) : (
@@ -368,14 +441,13 @@ export const DocumentManager: React.FC = () => {
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-2.5">
                           {getFileIcon(doc.filename)}
-                          <div>
-                            <div className="font-medium text-white">
+                          <div className="overflow-hidden">
+                            <div className="font-medium text-white truncate max-w-xs sm:max-w-md">
                               {doc.filename}
                             </div>
                             {doc.failureReason && (
-                              <div className="text-[11px] text-red-400 mt-1 flex items-center gap-1">
-                                <WarningCircle size={13} className="shrink-0" />
-                                <span>{doc.failureReason}</span>
+                              <div className="text-[11px] text-red-400 mt-0.5 truncate max-w-xs">
+                                {doc.failureReason}
                               </div>
                             )}
                           </div>
@@ -389,13 +461,13 @@ export const DocumentManager: React.FC = () => {
                           </span>
                         )}
                         {doc.status === "processing" && (
-                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse">
-                            <div className="w-2 h-2 border border-amber-400 border-t-transparent rounded-full animate-spin" />
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                            <Clock size={12} className="animate-spin" />
                             <span>Processing</span>
                           </span>
                         )}
                         {doc.status === "pending" && (
-                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-white/[0.06] text-[#8a8f98] border border-white/[0.1]">
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
                             <Clock size={12} />
                             <span>Pending</span>
                           </span>
@@ -443,6 +515,14 @@ export const DocumentManager: React.FC = () => {
             </table>
           </div>
         )}
+
+        <Pagination
+          currentPage={docPage}
+          totalPages={docPagination.totalPages}
+          totalItems={docPagination.total}
+          pageSize={docPagination.limit}
+          onPageChange={(newPage) => setDocPage(newPage)}
+        />
       </Card>
 
       {/* Retrieval Test Sandbox (Phase 3 Core Acceptance Tool) */}

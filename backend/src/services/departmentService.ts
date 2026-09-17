@@ -4,22 +4,58 @@ import logger from '../utils/logger';
 
 export class DepartmentService {
   /**
-   * List all departments within the authenticated user's company.
+   * List all departments within the authenticated user's company with search and pagination.
    */
-  async listDepartments(companyId: string) {
-    return prisma.department.findMany({
-      where: { companyId },
-      orderBy: { name: 'asc' },
-      include: {
-        _count: {
-          select: {
-            employees: true,
-            mentors: { where: { isActive: true } },
-            onboardingTemplates: true,
+  async listDepartments(
+    companyId: string,
+    options?: {
+      search?: string;
+      page?: number;
+      limit?: number;
+    }
+  ) {
+    const page = Math.max(1, options?.page || 1);
+    const rawLimit = options?.limit ?? 20;
+    const limit = Math.min(100, Math.max(1, rawLimit));
+    const skip = (page - 1) * limit;
+
+    const where: any = { companyId };
+    if (options?.search && options.search.trim()) {
+      where.name = { contains: options.search.trim(), mode: 'insensitive' };
+    }
+
+    const [total, departments] = await Promise.all([
+      prisma.department.count({ where }),
+      prisma.department.findMany({
+        where,
+        orderBy: { name: 'asc' },
+        skip,
+        take: limit,
+        include: {
+          _count: {
+            select: {
+              employees: true,
+              mentors: { where: { isActive: true } },
+              onboardingTemplates: true,
+            },
           },
         },
+      }),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data: departments,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
       },
-    });
+    };
   }
 
   /**

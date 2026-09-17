@@ -1,16 +1,23 @@
 import { Request, Response, NextFunction } from 'express';
 import departmentService from '../services/departmentService';
-import { addMentorSchema, createDepartmentSchema, updateDepartmentSchema } from '../utils/validation';
+import {
+  addMentorSchema,
+  createDepartmentSchema,
+  updateDepartmentSchema,
+  paginationQuerySchema,
+} from '../utils/validation';
 import { scopeToDepartment } from '../middleware/auth';
 
 export class DepartmentController {
   async list(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const companyId = req.user!.companyId;
-      const departments = await departmentService.listDepartments(companyId);
+      const query = paginationQuerySchema.parse(req.query);
+      const result = await departmentService.listDepartments(companyId, query);
       res.status(200).json({
         status: 'ok',
-        data: departments,
+        data: result.data,
+        pagination: result.pagination,
       });
     } catch (error) {
       next(error);

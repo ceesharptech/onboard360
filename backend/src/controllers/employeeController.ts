@@ -6,6 +6,7 @@ import {
   updateEmployeeTaskSchema,
   createAdHocTaskSchema,
   paginationQuerySchema,
+  employeeListQuerySchema,
 } from '../utils/validation';
 import { scopeToOwnEmployee, scopeToDepartment } from '../middleware/auth';
 import prisma from '../utils/prisma';
@@ -34,7 +35,7 @@ export class EmployeeController {
   async list(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const companyId = req.user!.companyId;
-      const pagination = paginationQuerySchema.parse(req.query);
+      const query = employeeListQuerySchema.parse(req.query);
 
       let departmentIdFilter: string | undefined;
 
@@ -64,7 +65,14 @@ export class EmployeeController {
             matched[0].userId = req.user!.userId;
             employee = {
               data: matched,
-              pagination: { total: matched.length, page: 1, limit: 1, totalPages: 1 },
+              pagination: {
+                total: matched.length,
+                page: 1,
+                limit: 1,
+                totalPages: 1,
+                hasNextPage: false,
+                hasPrevPage: false,
+              },
             };
           }
         }
@@ -72,7 +80,7 @@ export class EmployeeController {
         res.status(200).json({
           status: 'ok',
           data: employee.data,
-          pagination: { total: employee.data.length, page: 1, limit: 1, totalPages: 1 },
+          pagination: employee.pagination,
         });
         return;
       }
@@ -80,16 +88,17 @@ export class EmployeeController {
       if (req.user!.role === 'manager') {
         // Manager is restricted to own department
         departmentIdFilter = req.user!.departmentId ?? undefined;
-      } else if (pagination.departmentId) {
+      } else if (query.departmentId) {
         // HR Admin can optionally filter by department
-        departmentIdFilter = pagination.departmentId;
+        departmentIdFilter = query.departmentId;
       }
 
       const result = await employeeService.listEmployees(companyId, {
         departmentId: departmentIdFilter,
-        page: pagination.page,
-        limit: pagination.limit,
-        search: typeof req.query.search === 'string' ? req.query.search : undefined,
+        page: query.page,
+        limit: query.limit,
+        search: query.search,
+        status: query.status,
       });
 
       res.status(200).json({
