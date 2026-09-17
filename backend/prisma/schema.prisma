@@ -23,6 +23,7 @@ model Company {
   documents           Document[]
   documentChunks      DocumentChunk[]
   libraryDocuments    LibraryDocument[]
+  trainingEntries     TrainingEntry[]
 
   @@map("companies")
 }
@@ -42,9 +43,10 @@ model User {
   department        Department?          @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   employee          Employee?
   mentors           Mentor[]
-  createdTemplates  OnboardingTemplate[] @relation("TemplateCreator")
+  createdTemplates         OnboardingTemplate[] @relation("TemplateCreator")
   uploadedDocuments        Document[]           @relation("DocumentUploader")
   uploadedLibraryDocuments LibraryDocument[]    @relation("LibraryDocumentUploader")
+  createdTrainingEntries   TrainingEntry[]      @relation("TrainingCreator")
   refreshTokens            RefreshToken[]
 
   @@map("users")
@@ -241,5 +243,25 @@ model LibraryDocument {
   @@index([companyId])
   @@index([departmentId])
   @@map("library_documents")
+}
+
+model TrainingEntry {
+  id             String   @id @default(uuid())
+  companyId      String   @map("company_id")
+  title          String
+  description    String
+  contentType    String   @map("content_type") // 'video' | 'guide'
+  youtubeVideoId String?  @map("youtube_video_id")
+  guideContent   String?  @map("guide_content") @db.Text
+  createdBy      String   @map("created_by")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  creator User    @relation("TrainingCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@map("training_entries")
 }
 

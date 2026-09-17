@@ -231,6 +231,174 @@ export const createAdHocTaskSchema = z.object({
     .transform((val) => (val && val.length > 0 ? val : null)),
 });
 
+// --- Phase 5.5 Schemas: Training & Guides ---
+
+export function extractYouTubeVideoId(rawUrl: string): { success: true; videoId: string } | { success: false; error: string } {
+  if (!rawUrl || typeof rawUrl !== 'string') {
+    return { success: false, error: 'YouTube URL is required' };
+  }
+
+  const trimmed = rawUrl.trim();
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(trimmed);
+  } catch {
+    return { success: false, error: 'Invalid URL format' };
+  }
+
+  const hostname = parsedUrl.hostname.toLowerCase();
+  const validDomains = [
+    'youtube.com',
+    'www.youtube.com',
+    'm.youtube.com',
+    'music.youtube.com',
+    'youtu.be',
+  ];
+
+  const isYouTubeDomain = validDomains.some(
+    (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
+  );
+
+  if (!isYouTubeDomain) {
+    return {
+      success: false,
+      error: 'URL must be a genuine YouTube link (youtube.com or youtu.be)',
+    };
+  }
+
+  let videoId: string | null = null;
+
+  if (hostname === 'youtu.be') {
+    const pathname = parsedUrl.pathname.slice(1);
+    videoId = pathname.split('/')[0] || null;
+  } else {
+    if (parsedUrl.pathname === '/watch') {
+      videoId = parsedUrl.searchParams.get('v');
+    } else if (parsedUrl.pathname.startsWith('/embed/')) {
+      videoId = parsedUrl.pathname.split('/')[2] || null;
+    } else if (parsedUrl.pathname.startsWith('/v/')) {
+      videoId = parsedUrl.pathname.split('/')[2] || null;
+    } else if (parsedUrl.pathname.startsWith('/shorts/')) {
+      videoId = parsedUrl.pathname.split('/')[2] || null;
+    }
+  }
+
+  const YOUTUBE_ID_REGEX = /^[a-zA-Z0-9_-]{11}$/;
+  if (!videoId || !YOUTUBE_ID_REGEX.test(videoId)) {
+    return {
+      success: false,
+      error: 'YouTube URL does not contain a valid 11-character video ID',
+    };
+  }
+
+  return { success: true, videoId };
+}
+
+export const createTrainingEntrySchema = z
+  .preprocess((val: any) => {
+    if (val && typeof val === 'object') {
+      const copy = { ...val };
+      if (!copy.contentType && copy.type) {
+        copy.contentType = copy.type;
+      }
+      return copy;
+    }
+    return val;
+  }, z.object({
+    title: z.string().trim().min(1, 'Title is required').max(200, 'Title must be 200 characters or fewer'),
+    description: z.string().trim().min(1, 'Description is required').max(1000, 'Description must be 1000 characters or fewer'),
+    contentType: z.enum(['video', 'guide'], {
+      errorMap: () => ({ message: "contentType must be either 'video' or 'guide'" }),
+    }),
+    youtubeUrl: z.string().trim().optional().nullable(),
+    guideContent: z.string().trim().optional().nullable(),
+  }))
+  .superRefine((data, ctx) => {
+    if (data.contentType === 'video') {
+      if (!data.youtubeUrl || data.youtubeUrl.trim() === '') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'youtubeUrl is required for video training entries',
+          path: ['youtubeUrl'],
+        });
+      } else {
+        const extraction = extractYouTubeVideoId(data.youtubeUrl);
+        if (!extraction.success) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: extraction.error,
+            path: ['youtubeUrl'],
+          });
+        }
+      }
+    } else if (data.contentType === 'guide') {
+      if (!data.guideContent || data.guideContent.trim() === '') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'guideContent is required for guide training entries',
+          path: ['guideContent'],
+        });
+      }
+    }
+  });
+
+export const updateTrainingEntrySchema = z
+  .preprocess((val: any) => {
+    if (val && typeof val === 'object') {
+      const copy = { ...val };
+      if (!copy.contentType && copy.type) {
+        copy.contentType = copy.type;
+      }
+      return copy;
+    }
+    return val;
+  }, z.object({
+    title: z.string().trim().min(1, 'Title is required').max(200).optional(),
+    description: z.string().trim().min(1, 'Description is required').max(1000).optional(),
+    contentType: z.enum(['video', 'guide']).optional(),
+    youtubeUrl: z.string().trim().optional().nullable(),
+    guideContent: z.string().trim().optional().nullable(),
+  }))
+  .superRefine((data, ctx) => {
+    if (data.contentType === 'video' && data.youtubeUrl) {
+      const extraction = extractYouTubeVideoId(data.youtubeUrl);
+      if (!extraction.success) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: extraction.error,
+          path: ['youtubeUrl'],
+        });
+      }
+    } else if (data.contentType === 'guide' && data.guideContent !== undefined) {
+      if (!data.guideContent || data.guideContent.trim() === '') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'guideContent cannot be empty',
+          path: ['guideContent'],
+        });
+      }
+    }
+  });
+
+export const trainingListQuerySchema = z.preprocess(
+  (val: any) => {
+    if (val && typeof val === 'object') {
+      const copy = { ...val };
+      if (!copy.contentType && copy.type) {
+        copy.contentType = copy.type;
+      }
+      return copy;
+    }
+    return val;
+  },
+  z.object({
+    page: z.coerce.number().int().positive().default(1),
+    limit: z.coerce.number().int().positive().max(100).default(20),
+    search: z.string().trim().optional(),
+    contentType: z.enum(['video', 'guide']).optional(),
+  })
+);
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RefreshInput = z.infer<typeof refreshSchema>;
 export type LogoutInput = z.infer<typeof logoutSchema>;
@@ -248,3 +416,7 @@ export type CreateAdHocTaskInput = z.infer<typeof createAdHocTaskSchema>;
 export type PaginationQueryInput = z.infer<typeof paginationQuerySchema>;
 export type UserListQueryInput = z.infer<typeof userListQuerySchema>;
 export type EmployeeListQueryInput = z.infer<typeof employeeListQuerySchema>;
+export type CreateTrainingEntryInput = z.infer<typeof createTrainingEntrySchema>;
+export type UpdateTrainingEntryInput = z.infer<typeof updateTrainingEntrySchema>;
+export type TrainingListQueryInput = z.infer<typeof trainingListQuerySchema>;
+

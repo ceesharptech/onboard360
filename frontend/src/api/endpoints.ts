@@ -486,4 +486,81 @@ export const libraryDocumentApi = {
   },
 };
 
+export interface TrainingEntry {
+  id: string;
+  companyId: string;
+  createdBy: string;
+  contentType: 'video' | 'guide';
+  type: 'video' | 'guide';
+  title: string;
+  description: string;
+  youtubeVideoId: string | null;
+  embedUrl: string | null;
+  guideContent: string | null;
+  createdAt: string;
+  updatedAt: string;
+  creator?: {
+    id: string;
+    email: string;
+    role: string;
+  } | null;
+}
 
+export interface CreateTrainingEntryInput {
+  contentType?: 'video' | 'guide';
+  type?: 'video' | 'guide';
+  title: string;
+  description: string;
+  youtubeUrl?: string;
+  guideContent?: string;
+}
+
+export interface UpdateTrainingEntryInput {
+  title?: string;
+  description?: string;
+  contentType?: 'video' | 'guide';
+  type?: 'video' | 'guide';
+  youtubeUrl?: string;
+  guideContent?: string;
+}
+
+export const trainingApi = {
+  list: (params: { page?: number; limit?: number; search?: string; contentType?: 'video' | 'guide'; type?: 'video' | 'guide' } = {}) => {
+    const searchParams = new URLSearchParams();
+    if (params.page) searchParams.set('page', params.page.toString());
+    if (params.limit) searchParams.set('limit', params.limit.toString());
+    if (params.search) searchParams.set('search', params.search);
+    const filterType = params.contentType || params.type;
+    if (filterType) {
+      searchParams.set('contentType', filterType);
+    }
+    const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    return apiRequest<PaginatedList<TrainingEntry>>(`/training${query}`);
+  },
+  getOne: (id: string) => apiRequest<TrainingEntry>(`/training/${id}`),
+  create: (data: CreateTrainingEntryInput) => {
+    const contentType = data.contentType || data.type || 'video';
+    return apiRequest<TrainingEntry>('/training', {
+      method: 'POST',
+      body: JSON.stringify({
+        ...data,
+        contentType,
+        type: contentType,
+      }),
+    });
+  },
+  update: (id: string, data: UpdateTrainingEntryInput) => {
+    const contentType = data.contentType || data.type;
+    return apiRequest<TrainingEntry>(`/training/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        ...data,
+        ...(contentType ? { contentType, type: contentType } : {}),
+      }),
+    });
+  },
+  delete: (id: string) =>
+    apiRequest<{ status: string; message: string }>(`/training/${id}`, {
+      method: 'DELETE',
+    }),
+};

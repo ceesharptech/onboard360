@@ -7,6 +7,7 @@ import employeeRoutes from './employeeRoutes';
 import documentRoutes from './documentRoutes';
 import assistantRoutes from './assistantRoutes';
 import libraryDocumentRoutes from './libraryDocumentRoutes';
+import trainingRoutes from './trainingRoutes';
 
 const router = Router();
 
@@ -18,5 +19,6 @@ router.use('/employees', employeeRoutes);
 router.use('/documents', documentRoutes);
 router.use('/assistant', assistantRoutes);
 router.use('/library-documents', libraryDocumentRoutes);
+router.use('/training', trainingRoutes);
 
 export default router;

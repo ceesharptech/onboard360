@@ -12,6 +12,7 @@ import {
   UsersIcon,
   FileText,
   FolderSimple,
+  Video,
 } from "@phosphor-icons/react";
 
 export interface AppShellProps {
@@ -80,6 +81,11 @@ export const AppShell: React.FC<AppShellProps> = ({
       label: "Document Library",
       icon: <FolderSimple size={16} />,
     },
+    {
+      id: "training",
+      label: "Training & Guides",
+      icon: <Video size={16} />,
+    },
   ];
 
   const companyAiNavItems = [
@@ -114,8 +120,10 @@ export const AppShell: React.FC<AppShellProps> = ({
         ? "Company Knowledge Base"
         : currentTab === "library"
           ? "Document Library"
-          : allNavItems.find((item) => item.id === currentTab)?.label ||
-            "Onboarding Workspace";
+          : currentTab === "training"
+            ? "Training & Guides"
+            : allNavItems.find((item) => item.id === currentTab)?.label ||
+              "Onboarding Workspace";
 
   return (
     <div className="flex h-screen w-full bg-[#08080a] text-[#f7f8f8] overflow-hidden font-sans select-none">
