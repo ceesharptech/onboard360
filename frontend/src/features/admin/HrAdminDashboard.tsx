@@ -186,7 +186,7 @@ export const HrAdminDashboard: React.FC<HrAdminDashboardProps> = ({
         }),
         departmentApi.list(),
         templateApi.list(),
-        userApi.list().catch(() => []),
+        userApi.list({ paginate: false }).catch(() => []),
       ]);
 
       setEmployees(empList);

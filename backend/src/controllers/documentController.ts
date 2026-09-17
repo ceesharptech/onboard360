@@ -40,7 +40,6 @@ export class DocumentController {
       res.status(200).json({
         status: 'ok',
         data: result.data,
-        documents: result.data,
         pagination: result.pagination,
       });
     } catch (err) {

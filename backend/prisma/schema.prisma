@@ -22,6 +22,7 @@ model Company {
   onboardingTemplates OnboardingTemplate[]
   documents           Document[]
   documentChunks      DocumentChunk[]
+  libraryDocuments    LibraryDocument[]
 
   @@map("companies")
 }
@@ -42,8 +43,9 @@ model User {
   employee          Employee?
   mentors           Mentor[]
   createdTemplates  OnboardingTemplate[] @relation("TemplateCreator")
-  uploadedDocuments Document[]           @relation("DocumentUploader")
-  refreshTokens     RefreshToken[]
+  uploadedDocuments        Document[]           @relation("DocumentUploader")
+  uploadedLibraryDocuments LibraryDocument[]    @relation("LibraryDocumentUploader")
+  refreshTokens            RefreshToken[]
 
   @@map("users")
 }
@@ -59,6 +61,7 @@ model Department {
   employees           Employee[]
   mentors             Mentor[]
   onboardingTemplates OnboardingTemplate[]
+  libraryDocuments    LibraryDocument[]
 
   @@map("departments")
 }
@@ -130,12 +133,15 @@ model OnboardingTemplateTask {
   category      String
   orderIndex    Int     @map("order_index")
   assigneeType  String  @map("assignee_type")
-  dueOffsetDays Int     @map("due_offset_days")
-  taskUrl       String? @map("task_url")
+  dueOffsetDays     Int              @map("due_offset_days")
+  taskUrl           String?          @map("task_url")
+  relatedDocumentId String?          @map("related_document_id")
 
   // Relations
-  template OnboardingTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  template        OnboardingTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  relatedDocument LibraryDocument?   @relation(fields: [relatedDocumentId], references: [id], onDelete: SetNull)
 
+  @@index([relatedDocumentId])
   @@map("onboarding_template_tasks")
 }
 
@@ -150,12 +156,15 @@ model EmployeeTask {
   dueDate              DateTime? @map("due_date")
   status               String    @default("pending") @map("status") // 'pending' | 'in_progress' | 'completed'
   completedAt          DateTime? @map("completed_at")
-  sourceTemplateTaskId String?   @map("source_template_task_id") // Snapshot copy, not a live FK dependency
-  taskUrl              String?   @map("task_url")
+  sourceTemplateTaskId String?          @map("source_template_task_id") // Snapshot copy, not a live FK dependency
+  taskUrl              String?          @map("task_url")
+  relatedDocumentId    String?          @map("related_document_id")
 
   // Relations
-  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employee        Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  relatedDocument LibraryDocument? @relation(fields: [relatedDocumentId], references: [id], onDelete: SetNull)
 
+  @@index([relatedDocumentId])
   @@map("employee_tasks")
 }
 
@@ -209,5 +218,28 @@ model RefreshToken {
 
   @@index([userId])
   @@map("refresh_tokens")
+}
+
+model LibraryDocument {
+  id           String      @id @default(uuid())
+  companyId    String      @map("company_id")
+  departmentId String?     @map("department_id")
+  filename     String
+  storagePath  String      @map("storage_path")
+  uploadedBy   String      @map("uploaded_by")
+  status       String      @default("ready") @map("status") // 'ready' | 'failed'
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  company       Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  department    Department?              @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  uploader      User                     @relation("LibraryDocumentUploader", fields: [uploadedBy], references: [id], onDelete: Cascade)
+  templateTasks OnboardingTemplateTask[]
+  employeeTasks EmployeeTask[]
+
+  @@index([companyId])
+  @@index([departmentId])
+  @@map("library_documents")
 }
 

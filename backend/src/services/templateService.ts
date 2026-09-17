@@ -39,12 +39,18 @@ export class TemplateService {
               assigneeType: task.assigneeType,
               dueOffsetDays: task.dueOffsetDays,
               taskUrl: task.taskUrl ?? null,
+              relatedDocumentId: task.relatedDocumentId ?? null,
             })),
           },
         },
         include: {
           tasks: {
             orderBy: { orderIndex: 'asc' },
+            include: {
+              relatedDocument: {
+                select: { id: true, filename: true, departmentId: true },
+              },
+            },
           },
           department: {
             select: { id: true, name: true },
@@ -145,6 +151,11 @@ export class TemplateService {
         },
         tasks: {
           orderBy: { orderIndex: 'asc' },
+          include: {
+            relatedDocument: {
+              select: { id: true, filename: true, departmentId: true },
+            },
+          },
         },
       },
     });
@@ -182,6 +193,7 @@ export class TemplateService {
               assigneeType: task.assigneeType,
               dueOffsetDays: task.dueOffsetDays,
               taskUrl: task.taskUrl ?? null,
+              relatedDocumentId: task.relatedDocumentId ?? null,
             })),
           });
         }
@@ -201,6 +213,11 @@ export class TemplateService {
           },
           tasks: {
             orderBy: { orderIndex: 'asc' },
+            include: {
+              relatedDocument: {
+                select: { id: true, filename: true, departmentId: true },
+              },
+            },
           },
         },
       });

@@ -82,7 +82,7 @@ export const DocumentManager: React.FC = () => {
         limit: 20,
         search: search || undefined,
       });
-      const docs = res.documents || (Array.isArray(res) ? res : []);
+      const docs = Array.isArray(res) ? res : ((res as any)?.data || []);
       setDocuments(docs);
       if (res.pagination) {
         setDocPagination(res.pagination);

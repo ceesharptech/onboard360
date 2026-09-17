@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { userService } from '../services/userService';
-import { createUserSchema, paginationQuerySchema } from '../utils/validation';
+import { createUserSchema, userListQuerySchema } from '../utils/validation';
 import { UnauthorizedError } from '../utils/errors';
 
 export class UserController {
@@ -30,12 +30,13 @@ export class UserController {
         throw new UnauthorizedError('Authentication required', 'UNAUTHORIZED');
       }
 
-      const query = paginationQuerySchema.parse(req.query);
+      const query = userListQuerySchema.parse(req.query);
       const result = await userService.listUsers(req.user.companyId, {
         departmentId: query.departmentId,
         search: query.search,
         page: query.page,
         limit: query.limit,
+        paginate: query.paginate,
       });
 
       res.status(200).json({

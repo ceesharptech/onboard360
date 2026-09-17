@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import type { EmployeeTask } from "../../api/endpoints";
+import { libraryDocumentApi } from "../../api/endpoints";
 import { Modal } from "./Modal";
 import { Badge } from "./Badge";
 import { Button } from "./Button";
@@ -12,6 +13,9 @@ import {
   LockSimple,
   Check,
   Tag,
+  FileText,
+  DownloadSimple,
+  WarningCircle,
 } from "@phosphor-icons/react";
 
 export interface TaskDetailModalProps {
@@ -81,6 +85,34 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
       : task.status === "in_progress"
         ? "In Progress"
         : "Pending";
+
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownloadDocument = async (docId: string, filename: string) => {
+    try {
+      setIsDownloading(true);
+      const token = localStorage.getItem("access_token");
+      const res = await fetch(libraryDocumentApi.getDownloadUrl(docId), {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) {
+        throw new Error("Unable to download document. Access denied or file missing.");
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to download document");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   return (
     <Modal
@@ -159,6 +191,46 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
             </a>
           </div>
         )}
+
+        {/* Attached Library Document */}
+        {task.relatedDocument ? (
+          <div className="p-3 rounded-lg bg-[#14161a] border border-white/[0.08] flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="p-1 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 shrink-0">
+                <FileText size={14} />
+              </span>
+              <div className="truncate">
+                <div className="text-[11px] font-semibold text-[#f7f8f8]">
+                  Attached Document
+                </div>
+                <div className="text-xs text-[#8a8f98] truncate">
+                  {task.relatedDocument.filename}
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              disabled={isDownloading}
+              onClick={() =>
+                handleDownloadDocument(
+                  task.relatedDocument!.id,
+                  task.relatedDocument!.filename,
+                )
+              }
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white/[0.06] hover:bg-white/[0.1] text-xs font-medium text-[#f7f8f8] border border-white/[0.08] transition-colors shrink-0 cursor-pointer disabled:opacity-50"
+            >
+              <span>{isDownloading ? "Downloading..." : "Download"}</span>
+              <DownloadSimple size={12} />
+            </button>
+          </div>
+        ) : task.relatedDocumentId ? (
+          <div className="p-3 rounded-lg bg-[#14161a] border border-white/[0.06] flex items-center gap-2 text-xs text-[#62666d]">
+            <WarningCircle size={14} className="text-[#62666d] shrink-0" />
+            <span className="italic">
+              Document no longer available (it was removed from the Document Library)
+            </span>
+          </div>
+        ) : null}
 
         {/* Task Description (Markdown rendered) */}
         <div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import type { Employee, EmployeeTask, MyMenteeResponse } from "../../api/endpoints";
-import { employeeApi } from "../../api/endpoints";
+import { employeeApi, libraryDocumentApi } from "../../api/endpoints";
 import { useToast } from "../../context/ToastContext";
 import { Card } from "../../components/common/Card";
 import { Badge } from "../../components/common/Badge";
@@ -21,6 +21,7 @@ import {
   Link as LinkIcon,
   LockSimple,
   Info,
+  FileText,
 } from "@phosphor-icons/react";
 
 export const EmployeeDashboard: React.FC = () => {
@@ -465,6 +466,41 @@ export const EmployeeDashboard: React.FC = () => {
                             >
                               <LinkIcon size={14} />
                             </a>
+                          )}
+
+                          {/* Optional Related Document Button */}
+                          {task.relatedDocument && (
+                            <button
+                              type="button"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                try {
+                                  const token = localStorage.getItem("access_token");
+                                  const res = await fetch(
+                                    libraryDocumentApi.getDownloadUrl(task.relatedDocument!.id),
+                                    {
+                                      headers: token ? { Authorization: `Bearer ${token}` } : {},
+                                    }
+                                  );
+                                  if (!res.ok) throw new Error("Download failed");
+                                  const blob = await res.blob();
+                                  const url = window.URL.createObjectURL(blob);
+                                  const a = document.createElement("a");
+                                  a.href = url;
+                                  a.download = task.relatedDocument!.filename;
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  a.remove();
+                                  window.URL.revokeObjectURL(url);
+                                } catch (err: unknown) {
+                                  toast.error("Download Failed", "Unable to download document");
+                                }
+                              }}
+                              className="p-1 rounded text-[#8a8f98] hover:text-emerald-400 hover:bg-white/[0.08] transition-colors cursor-pointer"
+                              title={`Download ${task.relatedDocument.filename}`}
+                            >
+                              <FileText size={14} />
+                            </button>
                           )}
 
                           {task.dueDate && (

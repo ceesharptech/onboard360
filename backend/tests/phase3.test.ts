@@ -196,7 +196,7 @@ startxref
       ];
 
       // Allow async background processor to finish if running before clearing and inserting test chunks
-      await new Promise((r) => setTimeout(r, 200));
+      await new Promise((r) => setTimeout(r, 600));
 
       // Clear any chunks that async background processor might have inserted, then store manual test chunks
       await vectorSearchService.deleteDocumentChunks(createdDocId);
@@ -222,7 +222,7 @@ startxref
         .set('Authorization', `Bearer ${fixtureCompanyA.hrAdmin.token}`);
 
       expect(listRes.status).toBe(200);
-      const matched = listRes.body.documents.find((d: any) => d.id === createdDocId);
+      const matched = listRes.body.data.find((d: any) => d.id === createdDocId);
       expect(matched).toBeDefined();
       expect(matched.status).toBe('ready');
       expect(matched.chunkCount).toBe(2);
@@ -368,7 +368,7 @@ startxref
         .set('Authorization', `Bearer ${fixtureCompanyA.hrAdmin.token}`);
 
       expect(resA.status).toBe(200);
-      expect(resA.body.documents.some((d: any) => d.filename === 'company_leave_handbook.pdf')).toBe(true);
+      expect(resA.body.data.some((d: any) => d.filename === 'company_leave_handbook.pdf')).toBe(true);
 
       // Company B HR Admin lists documents: MUST NOT see Company A documents
       const resB = await request(app)
@@ -376,7 +376,7 @@ startxref
         .set('Authorization', `Bearer ${fixtureCompanyB.hrAdmin.token}`);
 
       expect(resB.status).toBe(200);
-      expect(resB.body.documents.some((d: any) => d.filename === 'company_leave_handbook.pdf')).toBe(false);
+      expect(resB.body.data.some((d: any) => d.filename === 'company_leave_handbook.pdf')).toBe(false);
 
       // Company B vector search returns 0 results for Company A's content
       const normValA = 1.0 / Math.sqrt(384);

@@ -9,6 +9,7 @@ import { ManagerDashboard } from './features/manager/ManagerDashboard';
 import { HrAdminDashboard } from './features/admin/HrAdminDashboard';
 import { TemplateBuilder } from './features/templates/TemplateBuilder';
 import { DocumentManager } from './features/documents/DocumentManager';
+import { DocumentLibrary } from './features/library/DocumentLibrary';
 import { QorraChat } from './features/assistant/QorraChat';
 
 const getDefaultTabForRole = (role?: string) => {
@@ -27,11 +28,11 @@ const getDefaultTabForRole = (role?: string) => {
 const getValidTabsForRole = (role?: string) => {
   switch (role) {
     case 'employee':
-      return ['my-onboarding', 'qorra'];
+      return ['my-onboarding', 'library', 'qorra'];
     case 'manager':
-      return ['team-roster', 'templates', 'qorra'];
+      return ['team-roster', 'templates', 'library', 'qorra'];
     case 'hr_admin':
-      return ['employees', 'templates', 'departments', 'documents', 'qorra'];
+      return ['employees', 'templates', 'departments', 'library', 'documents', 'qorra'];
     default:
       return [];
   }
@@ -79,6 +80,7 @@ const MainApp: React.FC = () => {
       {/* Global Company AI Tabs (Accessible across roles) */}
       {resolvedTab === 'qorra' && <QorraChat />}
       {resolvedTab === 'documents' && <DocumentManager />}
+      {resolvedTab === 'library' && <DocumentLibrary />}
 
       {/* Employee View */}
       {user.role === 'employee' && resolvedTab === 'my-onboarding' && <EmployeeDashboard />}

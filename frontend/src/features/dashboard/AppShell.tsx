@@ -11,6 +11,7 @@ import {
   CaretDown,
   UsersIcon,
   FileText,
+  FolderSimple,
 } from "@phosphor-icons/react";
 
 export interface AppShellProps {
@@ -73,6 +74,14 @@ export const AppShell: React.FC<AppShellProps> = ({
       : []),
   ];
 
+  const documentsAndGuidesNavItems = [
+    {
+      id: "library",
+      label: "Document Library",
+      icon: <FolderSimple size={16} />,
+    },
+  ];
+
   const companyAiNavItems = [
     ...(user?.role === "hr_admin"
       ? [
@@ -91,7 +100,11 @@ export const AppShell: React.FC<AppShellProps> = ({
     },
   ];
 
-  const allNavItems = [...workspaceNavItems, ...companyAiNavItems];
+  const allNavItems = [
+    ...workspaceNavItems,
+    ...documentsAndGuidesNavItems,
+    ...companyAiNavItems,
+  ];
 
   // Current tab display title for Linear breadcrumb
   const currentTabName =
@@ -99,8 +112,10 @@ export const AppShell: React.FC<AppShellProps> = ({
       ? "Qorra AI Assistant"
       : currentTab === "documents"
         ? "Company Knowledge Base"
-        : allNavItems.find((item) => item.id === currentTab)?.label ||
-          "Onboarding Workspace";
+        : currentTab === "library"
+          ? "Document Library"
+          : allNavItems.find((item) => item.id === currentTab)?.label ||
+            "Onboarding Workspace";
 
   return (
     <div className="flex h-screen w-full bg-[#08080a] text-[#f7f8f8] overflow-hidden font-sans select-none">
@@ -128,13 +143,6 @@ export const AppShell: React.FC<AppShellProps> = ({
               >
                 <MagnifyingGlass size={15} />
               </button>
-              {/* <button
-                type="button"
-                className="p-1 hover:text-[#f7f8f8] hover:bg-white/[0.06] rounded-md transition-colors cursor-pointer"
-                title="New onboarding draft"
-              >
-                <PencilSimpleLine size={15} />
-              </button> */}
             </div>
           </div>
 
@@ -197,6 +205,39 @@ export const AppShell: React.FC<AppShellProps> = ({
             </nav>
           </div>
 
+          {/* Documents & Guides Navigation Section */}
+          <div className="px-2 pt-4">
+            <div className="px-2.5 py-1 text-sm font-medium text-[#5a5e6b] flex items-center justify-between tracking-tight">
+              <span>Documents & Guides</span>
+              <CaretDown size={10} />
+            </div>
+
+            <nav className="flex flex-col gap-1 mt-0.5">
+              {documentsAndGuidesNavItems.map((item) => {
+                const isActive = currentTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => onTabChange(item.id)}
+                    className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm font-normal transition-colors cursor-pointer text-left ${
+                      isActive
+                        ? "bg-white/[0.08] text-white shadow-2xs font-medium"
+                        : "text-[#8a8f98] hover:text-[#f7f8f8] hover:bg-white/[0.04]"
+                    }`}
+                  >
+                    <span
+                      className={isActive ? "text-white" : "text-[#8a8f98]"}
+                    >
+                      {item.icon}
+                    </span>
+                    <span className="flex-1 truncate">{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
           {/* Company AI Navigation Section */}
           <div className="px-2 pt-4">
             <div className="px-2.5 py-1 text-sm font-medium text-[#5a5e6b] flex items-center justify-between tracking-tight">
@@ -234,29 +275,6 @@ export const AppShell: React.FC<AppShellProps> = ({
               })}
             </nav>
           </div>
-
-          {/* Favorites Section (Matching Linear Screenshot) */}
-          {/* <div className="px-2 pt-4">
-            <div className="px-2.5 py-1 text-[11px] font-medium text-[#5a5e6b] flex items-center justify-between uppercase tracking-wider">
-              <span>Favorites</span>
-              <CaretDown size={10} />
-            </div>
-
-            <div className="flex flex-col gap-0.5 mt-0.5 text-xs text-[#8a8f98]">
-              <div className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md hover:bg-white/[0.04] hover:text-[#f7f8f8] cursor-pointer transition-colors">
-                <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                <span className="truncate">Engineering Track</span>
-              </div>
-              <div className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md hover:bg-white/[0.04] hover:text-[#f7f8f8] cursor-pointer transition-colors">
-                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                <span className="truncate">Workspace Setup</span>
-              </div>
-              <div className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md hover:bg-white/[0.04] hover:text-[#f7f8f8] cursor-pointer transition-colors">
-                <span className="w-2 h-2 rounded-full bg-purple-400"></span>
-                <span className="truncate">Company Policies</span>
-              </div>
-            </div>
-          </div> */}
         </div>
 
         {/* User Profile Footer */}
@@ -296,53 +314,10 @@ export const AppShell: React.FC<AppShellProps> = ({
             <span className="text-[#d0d6e0] text-sm font-medium truncate max-w-[280px]">
               {currentTabName}
             </span>
-            {/* <button
-              type="button"
-              onClick={() => setIsStarred(!isStarred)}
-              className="p-1 text-[#8a8f98] hover:text-amber-400 transition-colors cursor-pointer"
-              title="Star view"
-            >
-              <Star
-                size={13}
-                weight={isStarred ? "fill" : "regular"}
-                className={isStarred ? "text-amber-400" : ""}
-              />
-            </button> */}
-            {/* <button
-              type="button"
-              className="p-1 text-[#8a8f98] hover:text-white transition-colors cursor-pointer"
-            >
-              <DotsThreeIcon size={14} weight="bold" />
-            </button> */}
           </div>
 
           {/* Right: Quick Tools */}
-          <div className="flex items-center gap-1.5 text-[#8a8f98]">
-            {/* <span className="text-[11px] text-[#5a5e6b] px-2 hidden sm:inline">
-              1 / 1
-            </span> */}
-            {/* <button
-              type="button"
-              className="p-1.5 hover:text-white hover:bg-white/[0.06] rounded-md transition-colors cursor-pointer"
-              title="Copy view link"
-            >
-              <LinkSimple size={14} />
-            </button>
-            <button
-              type="button"
-              className="p-1.5 hover:text-white hover:bg-white/[0.06] rounded-md transition-colors cursor-pointer"
-              title="Duplicate reference"
-            >
-              <Copy size={14} />
-            </button>
-            <button
-              type="button"
-              className="p-1.5 hover:text-white hover:bg-white/[0.06] rounded-md transition-colors cursor-pointer"
-              title="Branch / Activity"
-            >
-              <GitPullRequest size={14} />
-            </button> */}
-          </div>
+          <div className="flex items-center gap-1.5 text-[#8a8f98]"></div>
         </header>
 
         {/* Content Viewport */}

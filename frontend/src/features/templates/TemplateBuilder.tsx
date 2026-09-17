@@ -6,8 +6,10 @@ import type {
   TemplateTask,
   Department,
   PaginationMeta,
+  LibraryDocument,
+  PaginatedList,
 } from "../../api/endpoints";
-import { templateApi, departmentApi } from "../../api/endpoints";
+import { templateApi, departmentApi, libraryDocumentApi } from "../../api/endpoints";
 import { Button } from "../../components/common/Button";
 import { Badge } from "../../components/common/Badge";
 import { Input } from "../../components/common/Input";
@@ -26,6 +28,7 @@ import {
   EyeSlash,
   MagnifyingGlass,
   X,
+  FileText,
 } from "@phosphor-icons/react";
 import { MarkdownRenderer } from "../../components/common/MarkdownRenderer";
 
@@ -34,6 +37,7 @@ export const TemplateBuilder: React.FC = () => {
   const toast = useToast();
   const [templates, setTemplates] = useState<OnboardingTemplate[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [availableDocs, setAvailableDocs] = useState<LibraryDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -90,7 +94,7 @@ export const TemplateBuilder: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const [tList, dList] = await Promise.all([
+      const [tList, dList, docList] = await Promise.all([
         templateApi.list({
           page,
           limit: 20,
@@ -98,12 +102,14 @@ export const TemplateBuilder: React.FC = () => {
           departmentId: deptId || undefined,
         }),
         departmentApi.list(),
+        libraryDocumentApi.list({ limit: 100 }).catch(() => [] as unknown as PaginatedList<LibraryDocument>),
       ]);
       setTemplates(tList);
       if (tList.pagination) {
         setTemplatePagination(tList.pagination);
       }
       setDepartments(dList);
+      setAvailableDocs(Array.isArray(docList) ? docList : (docList as any)?.data || []);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load templates");
     } finally {
@@ -138,6 +144,7 @@ export const TemplateBuilder: React.FC = () => {
         assigneeType: "employee",
         dueOffsetDays: 1,
         taskUrl: null,
+        relatedDocumentId: null,
       },
     ]);
     setIsModalOpen(true);
@@ -156,6 +163,7 @@ export const TemplateBuilder: React.FC = () => {
             .map((task) => ({
               ...task,
               taskUrl: task.taskUrl ?? null,
+              relatedDocumentId: task.relatedDocumentId ?? null,
             }))
         : [],
     );
@@ -173,6 +181,7 @@ export const TemplateBuilder: React.FC = () => {
         assigneeType: "employee",
         dueOffsetDays: 3,
         taskUrl: null,
+        relatedDocumentId: null,
       },
     ]);
   };
@@ -227,6 +236,7 @@ export const TemplateBuilder: React.FC = () => {
           assigneeType: t.assigneeType,
           dueOffsetDays: Number(t.dueOffsetDays),
           taskUrl: t.taskUrl && t.taskUrl.trim() ? t.taskUrl.trim() : null,
+          relatedDocumentId: t.relatedDocumentId || null,
         })),
       };
 
@@ -443,6 +453,11 @@ export const TemplateBuilder: React.FC = () => {
                             {task.taskUrl && (
                               <span title={`Linked URL: ${task.taskUrl}`} className="shrink-0">
                                 <LinkIcon size={12} className="text-[#8a8f98]" />
+                              </span>
+                            )}
+                            {task.relatedDocument && (
+                              <span title={`Attached Document: ${task.relatedDocument.filename}`} className="shrink-0">
+                                <FileText size={12} className="text-[#8a8f98]" />
                               </span>
                             )}
                           </div>
@@ -685,19 +700,47 @@ export const TemplateBuilder: React.FC = () => {
                       <span className="text-[11px] text-[#5a5e6b]">days</span>
                     </div>
 
-                    <div className="sm:col-span-3">
-                      <input
-                        placeholder="External link (optional, e.g. https://wiki.company.com/handbook)"
-                        value={task.taskUrl || ""}
-                        onChange={(e) =>
-                          handleUpdateTaskField(
-                            index,
-                            "taskUrl",
-                            e.target.value,
-                          )
-                        }
-                        className="w-full bg-[#14161a] border border-white/[0.08] focus:border-white/30 text-xs text-[#f7f8f8] rounded-md px-2.5 py-1.5 focus:outline-none"
-                      />
+                    <div className="sm:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] text-[#5a5e6b] mb-1 block">
+                          Related Document (Optional)
+                        </label>
+                        <select
+                          value={task.relatedDocumentId || ""}
+                          onChange={(e) =>
+                            handleUpdateTaskField(
+                              index,
+                              "relatedDocumentId",
+                              e.target.value || null,
+                            )
+                          }
+                          className="w-full bg-[#14161a] border border-white/[0.08] focus:border-white/30 text-xs text-[#f7f8f8] rounded-md px-2.5 py-1.5 focus:outline-none cursor-pointer"
+                        >
+                          <option value="">No Document Attached</option>
+                          {availableDocs.map((doc) => (
+                            <option key={doc.id} value={doc.id}>
+                              {doc.filename} {doc.department ? `(${doc.department.name})` : "(Company-wide)"}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-[#5a5e6b] mb-1 block">
+                          External Resource URL (Optional)
+                        </label>
+                        <input
+                          placeholder="e.g. https://wiki.company.com/handbook"
+                          value={task.taskUrl || ""}
+                          onChange={(e) =>
+                            handleUpdateTaskField(
+                              index,
+                              "taskUrl",
+                              e.target.value,
+                            )
+                          }
+                          className="w-full bg-[#14161a] border border-white/[0.08] focus:border-white/30 text-xs text-[#f7f8f8] rounded-md px-2.5 py-1.5 focus:outline-none"
+                        />
+                      </div>
                     </div>
                   </div>
 

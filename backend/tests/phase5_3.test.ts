@@ -300,7 +300,7 @@ describe('Phase 5.3 — Search, Filtering & Pagination', () => {
       expect(res.body.pagination.total).toBeGreaterThanOrEqual(2);
     });
 
-    it('GET /documents returns pagination envelope while preserving backward compatibility', async () => {
+    it('GET /documents returns standard pagination envelope', async () => {
       const res = await request(app)
         .get('/documents?page=1&limit=1')
         .set('Authorization', `Bearer ${fixture.hrAdmin.token}`);
@@ -308,7 +308,7 @@ describe('Phase 5.3 — Search, Filtering & Pagination', () => {
       expect(res.status).toBe(200);
       expect(res.body.status).toBe('ok');
       expect(Array.isArray(res.body.data)).toBe(true);
-      expect(Array.isArray(res.body.documents)).toBe(true);
+      expect(res.body.documents).toBeUndefined();
       expect(res.body.data.length).toBe(1);
       expect(res.body.pagination).toBeDefined();
       expect(res.body.pagination.total).toBeGreaterThanOrEqual(2);

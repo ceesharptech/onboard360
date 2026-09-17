@@ -96,12 +96,15 @@ export class UserService {
       search?: string;
       page?: number;
       limit?: number;
+      paginate?: boolean;
     }
   ) {
+    const isPaginated = options?.paginate !== false;
     const page = Math.max(1, options?.page || 1);
     const rawLimit = options?.limit ?? 20;
     const limit = Math.min(100, Math.max(1, rawLimit));
-    const skip = (page - 1) * limit;
+    const skip = isPaginated ? (page - 1) * limit : undefined;
+    const take = isPaginated ? limit : undefined;
 
     const where: Record<string, unknown> = { companyId };
     if (options?.departmentId) {
@@ -116,7 +119,7 @@ export class UserService {
       prisma.user.findMany({
         where,
         skip,
-        take: limit,
+        take,
         select: {
           id: true,
           email: true,
@@ -133,17 +136,18 @@ export class UserService {
       }),
     ]);
 
-    const totalPages = Math.ceil(total / limit);
+    const effectiveLimit = isPaginated ? limit : total;
+    const totalPages = isPaginated ? Math.ceil(total / limit) : 1;
 
     return {
       data: users,
       pagination: {
         total,
-        page,
-        limit,
+        page: isPaginated ? page : 1,
+        limit: effectiveLimit,
         totalPages,
-        hasNextPage: page < totalPages,
-        hasPrevPage: page > 1,
+        hasNextPage: isPaginated ? page < totalPages : false,
+        hasPrevPage: isPaginated ? page > 1 : false,
       },
     };
   }

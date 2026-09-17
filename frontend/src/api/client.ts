@@ -94,9 +94,6 @@ export async function apiRequest<T = unknown>(
           if (retryData.pagination && Array.isArray(retryResult)) {
             (retryResult as any).pagination = retryData.pagination;
           }
-          if (retryData.documents && Array.isArray(retryResult)) {
-            (retryResult as any).documents = retryData.documents;
-          }
           resolve(retryResult as T);
         } catch (error) {
           reject(error);
@@ -115,9 +112,6 @@ export async function apiRequest<T = unknown>(
   const result = responseData.data !== undefined ? responseData.data : responseData;
   if (responseData.pagination && Array.isArray(result)) {
     (result as any).pagination = responseData.pagination;
-  }
-  if (responseData.documents && Array.isArray(result)) {
-    (result as any).documents = responseData.documents;
   }
 
   return result as T;

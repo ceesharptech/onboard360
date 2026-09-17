@@ -67,6 +67,12 @@ export const templateTaskSchema = z.object({
     .optional()
     .nullable()
     .transform((val) => (val && val.length > 0 ? val : null)),
+  relatedDocumentId: z
+    .string()
+    .uuid()
+    .optional()
+    .nullable()
+    .transform((val) => (val && val.length > 0 ? val : null)),
 });
 
 export const createTemplateSchema = z.object({
@@ -177,6 +183,15 @@ export const paginationQuerySchema = z.object({
   departmentId: z.string().uuid().optional(),
 });
 
+export const userListQuerySchema = paginationQuerySchema.extend({
+  paginate: z
+    .preprocess((val) => {
+      if (val === 'false' || val === false) return false;
+      if (val === 'true' || val === true) return true;
+      return undefined;
+    }, z.boolean().optional()),
+});
+
 export const employeeListQuerySchema = paginationQuerySchema.extend({
   status: z.enum(['not_started', 'in_progress', 'complete', 'overdue']).optional(),
 });
@@ -208,6 +223,12 @@ export const createAdHocTaskSchema = z.object({
     .refine((val) => !val || z.string().url().safeParse(val).success, {
       message: 'taskUrl must be a valid URL',
     }),
+  relatedDocumentId: z
+    .string()
+    .uuid()
+    .optional()
+    .nullable()
+    .transform((val) => (val && val.length > 0 ? val : null)),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
@@ -225,4 +246,5 @@ export type UpdateEmployeeInput = z.infer<typeof updateEmployeeSchema>;
 export type UpdateEmployeeTaskInput = z.infer<typeof updateEmployeeTaskSchema>;
 export type CreateAdHocTaskInput = z.infer<typeof createAdHocTaskSchema>;
 export type PaginationQueryInput = z.infer<typeof paginationQuerySchema>;
+export type UserListQueryInput = z.infer<typeof userListQuerySchema>;
 export type EmployeeListQueryInput = z.infer<typeof employeeListQuerySchema>;

@@ -1,6 +1,6 @@
-import React, { useState } from "react";
-import type { EmployeeTask } from "../../api/endpoints";
-import { employeeApi } from "../../api/endpoints";
+import React, { useState, useEffect } from "react";
+import type { EmployeeTask, LibraryDocument } from "../../api/endpoints";
+import { employeeApi, libraryDocumentApi } from "../../api/endpoints";
 import { useToast } from "../../context/ToastContext";
 import { Modal } from "../../components/common/Modal";
 import { Input } from "../../components/common/Input";
@@ -44,10 +44,24 @@ export const AssignTaskModal: React.FC<AssignTaskModalProps> = ({
   >("employee");
   const [dueDate, setDueDate] = useState("");
   const [taskUrl, setTaskUrl] = useState("");
+  const [relatedDocumentId, setRelatedDocumentId] = useState("");
+  const [availableDocs, setAvailableDocs] = useState<LibraryDocument[]>([]);
   const [description, setDescription] = useState("");
   const [previewMode, setPreviewMode] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Load available library documents when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      libraryDocumentApi
+        .list({ limit: 100 })
+        .then((res) => {
+          setAvailableDocs(Array.isArray(res) ? res : (res as any)?.data || []);
+        })
+        .catch(() => {});
+    }
+  }, [isOpen]);
 
   // Combine and deduplicate categories
   const allCategories = Array.from(
@@ -60,6 +74,7 @@ export const AssignTaskModal: React.FC<AssignTaskModalProps> = ({
     setAssigneeType("employee");
     setDueDate("");
     setTaskUrl("");
+    setRelatedDocumentId("");
     setDescription("");
     setPreviewMode(false);
     setError(null);
@@ -87,6 +102,7 @@ export const AssignTaskModal: React.FC<AssignTaskModalProps> = ({
         assigneeType,
         dueDate: dueDate ? dueDate : null,
         taskUrl: taskUrl.trim() ? taskUrl.trim() : null,
+        relatedDocumentId: relatedDocumentId || null,
         description: description.trim() ? description.trim() : null,
       });
 
@@ -212,6 +228,28 @@ export const AssignTaskModal: React.FC<AssignTaskModalProps> = ({
             onChange={(e) => setTaskUrl(e.target.value)}
             helperText="Link to relevant docs, tool setup or SaaS portal"
           />
+        </div>
+
+        {/* Related Library Document */}
+        <div>
+          <label className="block text-sm font-medium text-[#d0d6e0] mb-1.5">
+            Related Document (Document Library)
+          </label>
+          <select
+            value={relatedDocumentId}
+            onChange={(e) => setRelatedDocumentId(e.target.value)}
+            className="w-full bg-[#14161a] border border-white/[0.08] focus:border-white/30 text-xs text-[#f7f8f8] rounded-md px-3 py-2 focus:outline-none cursor-pointer"
+          >
+            <option value="">None (No document attached)</option>
+            {availableDocs.map((doc) => (
+              <option key={doc.id} value={doc.id}>
+                {doc.filename} {doc.department ? `(${doc.department.name})` : "(Company-wide)"}
+              </option>
+            ))}
+          </select>
+          <p className="text-[11px] text-[#5a5e6b] mt-1">
+            Optional PDF or DOCX file from the Human-browsable Document Library
+          </p>
         </div>
 
         {/* Rich Description (Markdown supported) */}

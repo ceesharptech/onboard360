@@ -237,6 +237,7 @@ export class EmployeeService {
             orderIndex: task.orderIndex,
             assigneeType: task.assigneeType,
             taskUrl: task.taskUrl ?? null,
+            relatedDocumentId: task.relatedDocumentId ?? null,
             dueDate,
             status: 'pending',
             sourceTemplateTaskId: task.id, // For traceability only, no live FK
@@ -403,7 +404,14 @@ export class EmployeeService {
       where: { id, companyId },
       include: {
         department: { select: { id: true, name: true } },
-        tasks: { orderBy: { orderIndex: 'asc' } },
+        tasks: {
+          orderBy: { orderIndex: 'asc' },
+          include: {
+            relatedDocument: {
+              select: { id: true, filename: true, departmentId: true },
+            },
+          },
+        },
         user: { select: { id: true, email: true, role: true } },
       },
     });
@@ -706,6 +714,12 @@ export class EmployeeService {
         completedAt: null,
         sourceTemplateTaskId: null,
         taskUrl: input.taskUrl ?? null,
+        relatedDocumentId: input.relatedDocumentId ?? null,
+      },
+      include: {
+        relatedDocument: {
+          select: { id: true, filename: true, departmentId: true },
+        },
       },
     });
 

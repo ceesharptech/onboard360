@@ -57,6 +57,12 @@ export interface TemplateTask {
   assigneeType: 'employee' | 'manager' | 'mentor';
   dueOffsetDays: number;
   taskUrl?: string | null;
+  relatedDocumentId?: string | null;
+  relatedDocument?: {
+    id: string;
+    filename: string;
+    departmentId?: string | null;
+  } | null;
 }
 
 export interface OnboardingTemplate {
@@ -82,6 +88,12 @@ export interface EmployeeTask {
   assigneeType: 'employee' | 'manager' | 'mentor';
   dueDate: string | null;
   taskUrl?: string | null;
+  relatedDocumentId?: string | null;
+  relatedDocument?: {
+    id: string;
+    filename: string;
+    departmentId?: string | null;
+  } | null;
   status: 'pending' | 'in_progress' | 'completed';
   completedAt: string | null;
   sourceTemplateTaskId: string | null;
@@ -188,13 +200,14 @@ export const authApi = {
 };
 
 export const userApi = {
-  list: (params?: { departmentId?: string; page?: number; limit?: number; search?: string } | string) => {
+  list: (params?: { departmentId?: string; page?: number; limit?: number; search?: string; paginate?: boolean } | string) => {
     const opts = typeof params === 'string' ? { departmentId: params } : (params || {});
     const searchParams = new URLSearchParams();
     if (opts.departmentId) searchParams.set('departmentId', opts.departmentId);
     if (opts.page) searchParams.set('page', opts.page.toString());
     if (opts.limit) searchParams.set('limit', opts.limit.toString());
     if (opts.search) searchParams.set('search', opts.search);
+    if (opts.paginate !== undefined) searchParams.set('paginate', opts.paginate.toString());
     const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
     return apiRequest<PaginatedList<User>>(`/users${query}`);
   },
@@ -333,6 +346,7 @@ export const employeeApi = {
       assigneeType?: 'employee' | 'manager' | 'mentor';
       dueDate?: string | null;
       taskUrl?: string | null;
+      relatedDocumentId?: string | null;
     }
   ) =>
     apiRequest<EmployeeTask>(`/employees/${employeeId}/tasks`, {
@@ -417,4 +431,59 @@ export const assistantApi = {
       body: JSON.stringify({ question }),
     }),
 };
+
+export interface LibraryDocument {
+  id: string;
+  companyId: string;
+  departmentId: string | null;
+  filename: string;
+  storagePath: string;
+  uploadedBy: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  department?: { id: string; name: string } | null;
+  uploader?: { id: string; email: string; role: string } | null;
+}
+
+export const libraryDocumentApi = {
+  list: (params: { page?: number; limit?: number; search?: string; departmentId?: string } = {}) => {
+    const searchParams = new URLSearchParams();
+    if (params.page) searchParams.set('page', params.page.toString());
+    if (params.limit) searchParams.set('limit', params.limit.toString());
+    if (params.search) searchParams.set('search', params.search);
+    if (params.departmentId) searchParams.set('departmentId', params.departmentId);
+    const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    return apiRequest<PaginatedList<LibraryDocument>>(`/library-documents${query}`);
+  },
+  getOne: (id: string) => apiRequest<{ status: string; data: LibraryDocument }>(`/library-documents/${id}`),
+  upload: (file: File, departmentId?: string | null) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (departmentId) {
+      formData.append('departmentId', departmentId);
+    }
+    return apiRequest<{ status: string; data: LibraryDocument }>('/library-documents', {
+      method: 'POST',
+      body: formData,
+    });
+  },
+  replace: (id: string, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiRequest<{ status: string; data: LibraryDocument }>(`/library-documents/${id}`, {
+      method: 'PUT',
+      body: formData,
+    });
+  },
+  delete: (id: string) =>
+    apiRequest<{ status: string; message: string }>(`/library-documents/${id}`, {
+      method: 'DELETE',
+    }),
+  getDownloadUrl: (id: string) => {
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    return `${baseUrl}/library-documents/${id}/download`;
+  },
+};
+
 

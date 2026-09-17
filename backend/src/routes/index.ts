@@ -6,6 +6,7 @@ import templateRoutes from './templateRoutes';
 import employeeRoutes from './employeeRoutes';
 import documentRoutes from './documentRoutes';
 import assistantRoutes from './assistantRoutes';
+import libraryDocumentRoutes from './libraryDocumentRoutes';
 
 const router = Router();
 
@@ -16,5 +17,6 @@ router.use('/templates', templateRoutes);
 router.use('/employees', employeeRoutes);
 router.use('/documents', documentRoutes);
 router.use('/assistant', assistantRoutes);
+router.use('/library-documents', libraryDocumentRoutes);
 
 export default router;

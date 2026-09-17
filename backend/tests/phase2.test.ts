@@ -20,6 +20,18 @@ describe('Phase 2 — Employee, Onboarding & Workflow Builder', () => {
 
   describe('1. Snapshot-on-Assignment (Hard Requirement)', () => {
     it('creates an employee from a template, then asserts editing the template does NOT alter the employee tasks', async () => {
+      // Create a library document in departmentA to test relatedDocumentId snapshotting
+      const libDoc = await prisma.libraryDocument.create({
+        data: {
+          companyId: fixture.company.id,
+          departmentId: fixture.departmentA.id,
+          filename: 'onboarding_checklist.pdf',
+          storagePath: 'uploads/fake_checklist.pdf',
+          uploadedBy: fixture.hrAdmin.id,
+          status: 'ready',
+        },
+      });
+
       // 1. Create a template in departmentA with 3 tasks
       const templateRes = await request(app)
         .post('/templates')
@@ -37,6 +49,8 @@ describe('Phase 2 — Employee, Onboarding & Workflow Builder', () => {
               orderIndex: 0,
               assigneeType: 'employee',
               dueOffsetDays: 1,
+              taskUrl: 'https://docs.company.com/setup',
+              relatedDocumentId: libDoc.id,
             },
             {
               title: 'Task Beta',
@@ -83,6 +97,9 @@ describe('Phase 2 — Employee, Onboarding & Workflow Builder', () => {
         'Task Beta',
         'Task Gamma',
       ]);
+      const snapshottedAlpha = initialEmployeeTasks.find((t: any) => t.title === 'Task Alpha');
+      expect(snapshottedAlpha.relatedDocumentId).toBe(libDoc.id);
+      expect(snapshottedAlpha.taskUrl).toBe('https://docs.company.com/setup');
 
       // 3. Edit the source template: mutate existing task, delete one, add a new one
       const updateTemplateRes = await request(app)
