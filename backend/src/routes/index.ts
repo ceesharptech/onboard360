@@ -9,6 +9,7 @@ import assistantRoutes from './assistantRoutes';
 import libraryDocumentRoutes from './libraryDocumentRoutes';
 import trainingRoutes from './trainingRoutes';
 import analyticsRoutes from './analyticsRoutes';
+import platformAdminRoutes from './platformAdminRoutes';
 
 const router = Router();
 
@@ -22,5 +23,6 @@ router.use('/assistant', assistantRoutes);
 router.use('/library-documents', libraryDocumentRoutes);
 router.use('/training', trainingRoutes);
 router.use('/analytics', analyticsRoutes);
+router.use('/platform-admin', platformAdminRoutes);
 
 export default router;

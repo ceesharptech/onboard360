@@ -4,7 +4,7 @@ This document is the build plan for the coding agent. Follow the phases **in ord
 
 - **Auth (Phase 1) comes before any feature work (Phase 2+)** because retrofitting access-control into existing queries is how security bugs happen — it should never be an afterthought.
 - **Retrieval (Phase 3) is validated independently of generation (Phase 4)** so that if the assistant ever gives a wrong answer later, you already know whether the bug is "wrong chunks retrieved" or "LLM ignored the chunks" — debugging both at once is much harder.
-- **Phase 5 is broken into sub-phases (5.1–5.6)**, added after Phase 4 shipped, based on a second round of feature requests. They're sequenced by shared plumbing rather than the order they were requested: data foundations first (5.1), then the detail-view/task-assignment work that depends on it (5.2), then list-wide UX (5.3), then the two new content areas — documents (5.4) and training (5.5) — and finally analytics and a full failure-mode audit (5.6), which benefits from everything above already existing. Do not start a sub-phase before the previous one's "Done when" criteria are met, same rule as the top-level phases.
+- **Phase 5 is broken into sub-phases (5.1–5.7)**, added after Phase 4 shipped, based on rounds of feature requests. They're sequenced by shared plumbing rather than the order they were requested: data foundations first (5.1), then the detail-view/task-assignment work that depends on it (5.2), then list-wide UX (5.3), then the two new content areas — documents (5.4) and training (5.5) — then analytics and a full failure-mode audit (5.6), and finally platform-level administration (5.7), added last because it's deliberately isolated from everything else — a separate authentication system with no dependency on the tenant-facing features above it. Do not start a sub-phase before the previous one's "Done when" criteria are met, same rule as the top-level phases.
 
 Refer to `PRD.md` for full feature detail and rationale. This document focuses on build order, schema, and acceptance criteria.
 
@@ -240,7 +240,29 @@ Tasks:
 
 ---
 
-## Phase 6 — Deployment
+## Phase 5.7 — Platform Administration & Tenant Onboarding
+
+**Goal:** give the product's owner (not any company's HR Admin) a way to onboard new companies and see platform-wide usage, without that capability sharing any code path with tenant-scoped authorization.
+
+**Fixed directives (decided explicitly, not open):**
+
+- **Workspace access model: no subdomain or path-based routing.** Every company uses the same application URL. A user's company is resolved entirely from their authenticated account (`company_id` on their user record, exactly as it already works) — there is no subdomain (`company.onboard360.com`) or path segment (`/w/company-slug`) involved in resolving tenancy. This was deliberately chosen over both alternatives to avoid DNS/wildcard-SSL/routing complexity that isn't needed at this scale; it can be added later as a cosmetic layer without changing the auth model, since auth already resolves company from the JWT rather than the URL.
+- **Platform admin is a fully separate system from the tenant `users` table** — not a fourth value on `users.role`. This is a deliberate isolation boundary: a bug in tenant-scoped authorization middleware must never be able to expose platform-admin capability, and vice versa. Concretely: a separate `platform_admins` table (own `id`, `email`, `password_hash`, no `company_id` — this account belongs to no company), a separate login endpoint (not the company login page/endpoint), a separate JWT (distinct signing secret and/or claim structure so a tenant JWT can never be mistaken for a platform-admin JWT), and separate middleware (`requirePlatformAdmin`) that shares no code path with `authenticate`/`requireRole`/`scopeToCompany`/etc.
+- The platform-admin login is not linked from the company login page or discoverable through normal app navigation — access it via a distinct, unlinked route.
+- Password hashing (bcrypt) and JWT expiry conventions (15m access / 7d refresh) stay consistent with the tenant auth system for engineering consistency, even though the systems are otherwise isolated.
+
+Tasks:
+
+- `platform_admins` table + migration, seed script for the initial (your own) platform-admin account
+- Platform-admin login endpoint + `requirePlatformAdmin` middleware
+- Company onboarding: platform admin can create a new company, which includes creating that company's first HR Admin account (reuse the existing `mustChangePassword`-on-first-login flow from the pre-Phase-5 batch for that initial HR Admin credential, same as any other newly created account)
+- Company list view: all registered companies, with at least employee count and creation date; consider surfacing other useful at-a-glance data (e.g. department count, whether Groq/Qorra has been used) if cheap to compute, but this is not a hard requirement
+- Company detail view: drill into a single company's basic stats
+- No subdomain/path work in this sub-phase, per the fixed directive above
+
+**Done when:** a platform admin can log in via the separate platform-admin login, create a new company (which provisions that company's first HR Admin with a forced-password-change credential), see it appear in the company list with a correct employee count, and — critically — a tenant-scoped JWT (from any company's hr_admin/manager/employee login) cannot access any platform-admin endpoint, and a platform-admin JWT cannot access any tenant-scoped endpoint, both confirmed by automated tests.
+
+---
 
 **Goal:** the product works for a stranger hitting a URL, not just on localhost.
 
@@ -259,7 +281,7 @@ Tasks:
 ## Deferred / Backlog (not part of this build plan)
 
 - **Notification reminders on tasks** — explicitly deferred to a post-launch v1.1 backlog item, not scheduled within Phase 5 or Phase 6.
-- **Multi-tenant company onboarding with subdomain routing** (e.g. `chowdeck.onboard360.com`) — explicitly a post-deployment initiative on the product owner's own timeline, not part of this repo's phase plan. Note this is a meaningfully larger architectural change than anything above (subdomain-based routing, tenant provisioning/admin tooling, workspace branding) — when it's picked up, it deserves its own PRD-style scoping pass rather than being folded into an existing sub-phase.
+- **Multi-tenant company onboarding** — no longer fully deferred: the core capability (a platform admin can register new companies, resolved via account-based tenancy with no subdomain/path routing) is now Phase 5.7. What remains genuinely deferred is subdomain-based routing itself (e.g. `chowdeck.onboard360.com`) and any further SaaS-polish tenant tooling (billing, self-serve signup, workspace branding beyond showing the company name) — those stay a future initiative on the product owner's own timeline, addable later without changing the auth model already in place.
 
 ---
 

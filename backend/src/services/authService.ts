@@ -17,6 +17,7 @@ export interface LoginResult {
     email: string;
     role: string;
     companyId: string;
+    companyName?: string | null;
     departmentId: string | null;
   };
 }
@@ -41,6 +42,14 @@ export class AuthService {
   async login(email: string, password: string): Promise<LoginOutput> {
     const user = await prisma.user.findUnique({
       where: { email },
+      include: {
+        company: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     });
 
     const hashToCompare = user ? user.passwordHash : DUMMY_HASH;
@@ -91,6 +100,7 @@ export class AuthService {
         email: user.email,
         role: user.role,
         companyId: user.companyId,
+        companyName: user.company?.name || null,
         departmentId: user.departmentId,
       },
     };
@@ -102,6 +112,14 @@ export class AuthService {
   async changePassword(email: string, currentPassword: string, newPassword: string): Promise<LoginResult> {
     const user = await prisma.user.findUnique({
       where: { email },
+      include: {
+        company: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     });
 
     const hashToCompare = user ? user.passwordHash : DUMMY_HASH;
@@ -152,6 +170,7 @@ export class AuthService {
         email: user.email,
         role: user.role,
         companyId: user.companyId,
+        companyName: user.company?.name || null,
         departmentId: user.departmentId,
       },
     };

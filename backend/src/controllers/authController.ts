@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { authService } from '../services/authService';
 import { loginSchema, refreshSchema, logoutSchema, changePasswordSchema } from '../utils/validation';
+import prisma from '../utils/prisma';
+import { UnauthorizedError } from '../utils/errors';
 
 export class AuthController {
   async login(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -65,6 +67,44 @@ export class AuthController {
       res.status(200).json({
         status: 'ok',
         message: 'Logged out successfully',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getMe(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: req.user!.userId },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          companyId: true,
+          departmentId: true,
+          company: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      });
+
+      if (!user) {
+        throw new UnauthorizedError('User not found');
+      }
+
+      res.status(200).json({
+        status: 'ok',
+        data: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          companyId: user.companyId,
+          companyName: user.company?.name || null,
+          departmentId: user.departmentId,
+        },
       });
     } catch (error) {
       next(error);

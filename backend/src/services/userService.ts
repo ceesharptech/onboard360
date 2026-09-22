@@ -87,6 +87,57 @@ export class UserService {
   }
 
   /**
+   * Provisions the initial HR Admin account for a newly created company (Phase 5.7).
+   * Reuses the exact same hashing and forced password change logic (mustChangePassword = true).
+   * Accepts an optional Prisma transaction client to guarantee atomicity.
+   */
+  async createInitialHrAdmin(
+    companyId: string,
+    input: { email: string; password: string },
+    txClient?: any
+  ): Promise<SanitizedUser> {
+    const db = txClient || prisma;
+    const { email, password } = input;
+
+    // Check if email already exists
+    const existingUser = await db.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      throw new ConflictError('A user with this email address already exists', 'EMAIL_ALREADY_EXISTS');
+    }
+
+    const passwordHash = await hashPassword(password);
+
+    const newUser = await db.user.create({
+      data: {
+        companyId,
+        email,
+        passwordHash,
+        role: 'hr_admin',
+        mustChangePassword: true,
+      },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        companyId: true,
+        departmentId: true,
+        mustChangePassword: true,
+        createdAt: true,
+      },
+    });
+
+    logger.info(
+      { createdUserId: newUser.id, role: newUser.role, companyId: newUser.companyId },
+      'Initial HR Admin account provisioned for new company'
+    );
+
+    return newUser;
+  }
+
+  /**
    * Lists users within the authenticated user's company with search and pagination.
    */
   async listUsers(

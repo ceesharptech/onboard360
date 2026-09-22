@@ -42,7 +42,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     window.addEventListener('auth:logout', handleLogoutEvent);
-    setLoading(false);
+
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      authApi
+        .getMe()
+        .then((freshUser) => {
+          setUser(freshUser);
+          localStorage.setItem('user_profile', JSON.stringify(freshUser));
+        })
+        .catch(() => {
+          // Handled by refresh or token expiration interceptor
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    } else {
+      setLoading(false);
+    }
 
     return () => {
       window.removeEventListener('auth:logout', handleLogoutEvent);

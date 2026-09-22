@@ -420,3 +420,25 @@ export type CreateTrainingEntryInput = z.infer<typeof createTrainingEntrySchema>
 export type UpdateTrainingEntryInput = z.infer<typeof updateTrainingEntrySchema>;
 export type TrainingListQueryInput = z.infer<typeof trainingListQuerySchema>;
 
+// --- Phase 5.7 Schemas (Platform Administration & Tenant Onboarding) ---
+
+export const platformAdminLoginSchema = z.object({
+  email: z.string().trim().toLowerCase().email('A valid email address is required'),
+  password: z.string().min(1, 'Password is required'),
+});
+
+export const createCompanySchema = z.object({
+  companyName: z.string().trim().min(1, 'Company name is required'),
+  hrAdminEmail: z.string().trim().toLowerCase().email('A valid email address is required for HR Admin'),
+  hrAdminPassword: passwordComplexity.optional(),
+});
+
+export const companyListQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20),
+  search: z.string().trim().optional(),
+});
+
+export type PlatformAdminLoginInput = z.infer<typeof platformAdminLoginSchema>;
+export type CreateCompanyInput = z.infer<typeof createCompanySchema>;
+export type CompanyListQueryInput = z.infer<typeof companyListQuerySchema>;

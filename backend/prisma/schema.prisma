@@ -265,3 +265,12 @@ model TrainingEntry {
   @@map("training_entries")
 }
 
+model PlatformAdmin {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("platform_admins")
+}
+

@@ -59,7 +59,10 @@ export const ForcedPasswordChange: React.FC<ForcedPasswordChangeProps> = ({
 
     try {
       await changePassword(currentPassword, newPassword);
-      toast.success("Password updated", "Your new password has been set successfully.");
+      toast.success(
+        "Password updated",
+        "Your new password has been set successfully.",
+      );
     } catch (err: unknown) {
       const message =
         err instanceof Error
@@ -85,7 +88,7 @@ export const ForcedPasswordChange: React.FC<ForcedPasswordChangeProps> = ({
       </div>
 
       {/* Password Reset Card */}
-      <div className="w-full max-w-md bg-[#0f1013] border border-white/[0.08] rounded-xl p-7 sm:p-8 shadow-2xl text-left">
+      <div className="w-full max-w-md bg-[#0f1013] border border-white/[0.08] rounded-xl p-7 sm:p-8 shadow-md text-left">
         <div className="flex items-center gap-2.5 mb-2">
           <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
             <Lock size={18} weight="bold" />

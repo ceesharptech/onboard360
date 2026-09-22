@@ -8,6 +8,7 @@ export interface UserTokenPayload {
   role: UserRole;
   companyId: string;
   departmentId: string | null;
+  email?: string;
 }
 
 export interface DecodedToken extends UserTokenPayload, BaseJwtPayload {

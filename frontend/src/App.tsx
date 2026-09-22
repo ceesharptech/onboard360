@@ -13,6 +13,7 @@ import { DocumentLibrary } from './features/library/DocumentLibrary';
 import { TrainingLibrary } from './features/training/TrainingLibrary';
 import { QorraChat } from './features/assistant/QorraChat';
 import { AnalyticsDashboard } from './features/analytics/AnalyticsDashboard';
+import { PlatformAdminApp } from './features/platformAdmin/PlatformAdminApp';
 
 const getDefaultTabForRole = (role?: string) => {
   switch (role) {
@@ -113,6 +114,12 @@ const MainApp: React.FC = () => {
 };
 
 export default function App() {
+  const isPlatformAdmin = window.location.pathname.startsWith('/platform-admin');
+
+  if (isPlatformAdmin) {
+    return <PlatformAdminApp />;
+  }
+
   return (
     <ToastProvider>
       <AuthProvider>

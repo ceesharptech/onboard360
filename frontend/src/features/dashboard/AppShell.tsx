@@ -142,17 +142,21 @@ export const AppShell: React.FC<AppShellProps> = ({
       <aside className="w-60 bg-[#08080a] border-r border-white/[0.03] px-1 flex flex-col justify-between shrink-0 select-none">
         <div className="flex flex-col flex-1 overflow-y-auto">
           {/* Workspace Switcher Header (Matching Linear Screenshot) */}
-          <div className="h-12 px-3.5  flex items-center justify-between">
-            <button
-              type="button"
-              className="flex items-center gap-2 text-left p-1.5 rounded-md transition-colors -ml-1 text-sm font-semibold tracking-tight"
-            >
-              <div className="w-5 h-5 rounded-full bg-linear-to-l from-white to-neutral-500 shadow-xs"></div>
-              <span className="text-[#f7f8f8] font-medium text-xs sm:text-base">
-                Onboard360
-              </span>
-              {/* <CaretDown size={11} className="text-[#8a8f98]" /> */}
-            </button>
+          <div className="h-14 px-3.5 flex items-center justify-between">
+            <div className="flex items-center gap-2.5 text-left p-1 rounded-md -ml-1 min-w-0">
+              <div className="w-5 h-5 rounded-full bg-linear-to-l from-white to-neutral-500 shadow-xs shrink-0 mt-0.5"></div>
+              <div className="flex flex-col min-w-0 leading-tight">
+                <span className="text-[#f7f8f8] font-medium text-xs sm:text-sm tracking-tight truncate">
+                  Onboard360
+                </span>
+                <span
+                  className="text-[11px] text-[#8a8f98] font-normal truncate max-w-[130px]"
+                  title={user?.companyName || "Workspace"}
+                >
+                  {user?.companyName || "Workspace"}
+                </span>
+              </div>
+            </div>
 
             <div className="flex items-center gap-0.5 text-[#8a8f98]">
               <button
@@ -284,11 +288,11 @@ export const AppShell: React.FC<AppShellProps> = ({
                       {item.icon}
                     </span>
                     <span className="flex-1 truncate">{item.label}</span>
-                    {item.badge && (
+                    {/* {item.badge && (
                       <span className="text-[10px] px-1.5 py-0.2 rounded bg-indigo-500/20 font-sans text-indigo-300 border border-indigo-500/30">
                         {item.badge}
                       </span>
-                    )}
+                    )} */}
                   </button>
                 );
               })}

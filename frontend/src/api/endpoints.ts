@@ -5,6 +5,7 @@ export interface User {
   email: string;
   role: 'hr_admin' | 'manager' | 'employee';
   companyId: string;
+  companyName?: string;
   departmentId: string | null;
   mustChangePassword?: boolean;
 }
@@ -197,6 +198,8 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify({ refreshToken }),
     }),
+  getMe: () =>
+    apiRequest<User>('/auth/me'),
 };
 
 export const userApi = {

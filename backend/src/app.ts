@@ -37,14 +37,23 @@ app.get("/health", (req: Request, res: Response) => {
  * Global authentication middleware per Phase 1 directive:
  * "Apply authenticate globally to all routes except /auth/login and /auth/refresh"
  * (and the health check endpoint).
+ *
+ * Excludes /platform-admin routes per Phase 5.7 directive:
+ * Platform admin endpoints operate under a separate authentication system (requirePlatformAdmin).
  */
-const publicPathPrefixes = ["/health", "/auth/login", "/auth/change-password", "/auth/refresh"];
+const tenantAuthBypassPrefixes = [
+  "/health",
+  "/auth/login",
+  "/auth/change-password",
+  "/auth/refresh",
+  "/platform-admin",
+];
 
 app.use((req: Request, res: Response, next: NextFunction) => {
-  const isPublic = publicPathPrefixes.some(
+  const isBypassed = tenantAuthBypassPrefixes.some(
     (path) => req.path === path || req.path.startsWith(path),
   );
-  if (isPublic) {
+  if (isBypassed) {
     return next();
   }
   return authenticate(req, res, next);

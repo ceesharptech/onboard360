@@ -227,7 +227,7 @@ export class EmployeeService {
 
       // Snapshot tasks if matched template exists
       if (matchedTemplate && matchedTemplate.tasks.length > 0) {
-        const employeeTasksData = matchedTemplate.tasks.map((task) => {
+        const employeeTasksData = matchedTemplate.tasks.map((task: any) => {
           const dueDate = new Date(startDate.getTime() + task.dueOffsetDays * 86400000);
           return {
             employeeId: newEmployee.id,

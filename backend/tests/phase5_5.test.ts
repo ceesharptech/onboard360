@@ -236,48 +236,68 @@ For more information, see [Internal Wiki](https://wiki.example.com).
       expect(res.status).toBe(403);
     });
 
-    it('rejects Manager creating a training entry with 403 Forbidden', async () => {
+    it('allows Manager to create a training entry (e.g. guide or video)', async () => {
       const res = await request(app)
         .post('/training')
         .set('Authorization', `Bearer ${fixture.managerDeptA.token}`)
         .send({
-          title: 'Manager Unauthorized Video',
-          description: 'Should be rejected.',
-          contentType: 'video',
-          youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+          title: 'Manager Guide to Sprint Planning',
+          description: 'Step-by-step sprint rituals.',
+          contentType: 'guide',
+          guideContent: '# Sprint Planning\n1. Review backlog\n2. Estimate points',
         });
 
-      expect(res.status).toBe(403);
+      expect(res.status).toBe(201);
+      expect(res.body.data.title).toBe('Manager Guide to Sprint Planning');
+      expect(res.body.data.contentType).toBe('guide');
     });
 
-    it('rejects Employee and Manager updating a training entry with 403 Forbidden', async () => {
+    it('rejects Employee updating a training entry with 403 Forbidden', async () => {
       const empRes = await request(app)
         .put(`/training/${createdVideoId}`)
         .set('Authorization', `Bearer ${fixture.employee1DeptA.token}`)
         .send({ title: 'Hacked Title' });
 
       expect(empRes.status).toBe(403);
+    });
 
+    it('allows Manager to update a training entry', async () => {
       const mgrRes = await request(app)
         .put(`/training/${createdVideoId}`)
         .set('Authorization', `Bearer ${fixture.managerDeptA.token}`)
-        .send({ title: 'Manager Title' });
+        .send({ title: 'Manager Updated Title' });
 
-      expect(mgrRes.status).toBe(403);
+      expect(mgrRes.status).toBe(200);
+      expect(mgrRes.body.data.title).toBe('Manager Updated Title');
     });
 
-    it('rejects Employee and Manager deleting a training entry with 403 Forbidden', async () => {
+    it('rejects Employee deleting a training entry with 403 Forbidden', async () => {
       const empRes = await request(app)
         .delete(`/training/${createdVideoId}`)
         .set('Authorization', `Bearer ${fixture.employee1DeptA.token}`);
 
       expect(empRes.status).toBe(403);
+    });
 
-      const mgrRes = await request(app)
-        .delete(`/training/${createdVideoId}`)
+    it('allows Manager to delete a training entry', async () => {
+      const createRes = await request(app)
+        .post('/training')
+        .set('Authorization', `Bearer ${fixture.managerDeptA.token}`)
+        .send({
+          title: 'Manager Temp Entry',
+          description: 'To be deleted by manager.',
+          contentType: 'guide',
+          guideContent: 'Temporary content for delete test.',
+        });
+
+      expect(createRes.status).toBe(201);
+      const tempId = createRes.body.data.id;
+
+      const deleteRes = await request(app)
+        .delete(`/training/${tempId}`)
         .set('Authorization', `Bearer ${fixture.managerDeptA.token}`);
 
-      expect(mgrRes.status).toBe(403);
+      expect(deleteRes.status).toBe(200);
     });
 
     it('allows HR Admin to update a training entry', async () => {

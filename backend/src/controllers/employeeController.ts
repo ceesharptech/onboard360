@@ -47,15 +47,15 @@ export class EmployeeController {
           limit: 1,
         });
 
-        // Fallback: if not linked by userId yet, look up by user email and auto-link
-        if (employee.data.length === 0 && req.user!.email) {
+        const userEmail = req.user?.email;
+        if (employee.data.length === 0 && userEmail) {
           const byEmail = await employeeService.listEmployees(companyId, {
-            search: req.user!.email,
+            search: userEmail,
             page: 1,
             limit: 1,
           });
           const matched = byEmail.data.filter(
-            (e) => e.email.toLowerCase() === req.user!.email.toLowerCase()
+            (e) => e.email.toLowerCase() === userEmail.toLowerCase()
           );
           if (matched.length > 0) {
             await prisma.employee.update({

@@ -79,7 +79,7 @@ export class TrainingController {
 
   async getOne(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
       const entry = await trainingService.getTrainingEntry(req.user!.companyId, id);
 
       if (!entry) {
@@ -103,7 +103,7 @@ export class TrainingController {
 
   async update(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
       const parsed = updateTrainingEntrySchema.safeParse(req.body);
       if (!parsed.success) {
         res.status(400).json({
@@ -156,7 +156,7 @@ export class TrainingController {
 
   async delete(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
       const deleted = await trainingService.deleteTrainingEntry(req.user!.companyId, id);
 
       if (!deleted) {

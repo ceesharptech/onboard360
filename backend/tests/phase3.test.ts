@@ -195,8 +195,14 @@ startxref
         },
       ];
 
-      // Allow async background processor to finish if running before clearing and inserting test chunks
-      await new Promise((r) => setTimeout(r, 600));
+      // Wait for async background processor to finish (status transitions out of pending/processing)
+      for (let i = 0; i < 30; i++) {
+        const checkDoc = await prisma.document.findUnique({ where: { id: createdDocId } });
+        if (checkDoc && checkDoc.status !== 'pending' && checkDoc.status !== 'processing') {
+          break;
+        }
+        await new Promise((r) => setTimeout(r, 100));
+      }
 
       // Clear any chunks that async background processor might have inserted, then store manual test chunks
       await vectorSearchService.deleteDocumentChunks(createdDocId);
@@ -241,8 +247,14 @@ startxref
       expect(replaceRes.status).toBe(200);
       expect(replaceRes.body.document.filename).toBe('leave_policy_v2.pdf');
 
-      // Allow async background processor to finish before asserting chunk counts
-      await new Promise((r) => setTimeout(r, 200));
+      // Wait for async background processor to finish before asserting chunk counts
+      for (let i = 0; i < 30; i++) {
+        const checkDoc = await prisma.document.findUnique({ where: { id: createdDocId } });
+        if (checkDoc && checkDoc.status !== 'pending' && checkDoc.status !== 'processing') {
+          break;
+        }
+        await new Promise((r) => setTimeout(r, 100));
+      }
 
       // Clear any chunks that async background processor might have inserted, then verify count is 0
       await vectorSearchService.deleteDocumentChunks(createdDocId);
