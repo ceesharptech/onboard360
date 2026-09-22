@@ -256,14 +256,11 @@ export const DocumentLibrary: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/[0.06]">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
-              <FolderSimple size={20} weight="bold" />
-            </div>
             <div>
-              <h1 className="text-lg font-medium text-white tracking-tight">
+              <h1 className="text-2xl font-medium text-white tracking-tight">
                 Document Library
               </h1>
-              <p className="text-xs text-[#8a8f98] mt-0.5">
+              <p className="text-sm text-[#8a8f98] mt-0.5">
                 Company-wide policies, employee handbooks, and departmental
                 documentation.
               </p>

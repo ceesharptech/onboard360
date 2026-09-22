@@ -50,14 +50,14 @@ export const LoginPage: React.FC = () => {
       <div className="flex items-center gap-3 mb-8">
         <div className="text-center">
           <h1 className="text-2xl font-semibold upper tracking-tight text-[#f7f8f8] m-0">
-            Onboard<span className="text-indigo-400">360</span>
+            Onboard360
           </h1>
           <p className="text-[11px] text-[#8a8f98]">HR Onboarding Platform</p>
         </div>
       </div>
 
       {/* Main Login Card */}
-      <div className="w-full max-w-md bg-[#0b0c0e] border border-white/[0.08] rounded-xl p-7 sm:p-8 shadow-2xl text-left">
+      <div className="w-full max-w-md bg-[#0b0c0e] border border-white/[0.08] rounded-xl p-7 sm:p-8 shadow-md text-left">
         <h2 className="text-xl font-medium text-[#f7f8f8] tracking-tight mb-1.5">
           Welcome back
         </h2>

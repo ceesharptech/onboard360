@@ -1,15 +1,9 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import { analyticsApi, departmentApi } from "../../api/endpoints";
-import type {
-  AnalyticsData,
-  Department,
-  EmployeeAnalyticsItem,
-} from "../../api/endpoints";
+import type { AnalyticsData, Department } from "../../api/endpoints";
 import {
-  ChartBar,
-  TrendUp,
   Clock,
   WarningCircle,
   CheckCircle,
@@ -17,7 +11,6 @@ import {
   GitFork,
   Buildings,
   ArrowClockwise,
-  MagnifyingGlass,
   CaretDown,
 } from "@phosphor-icons/react";
 
@@ -29,12 +22,6 @@ export const AnalyticsDashboard: React.FC = () => {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [selectedDeptId, setSelectedDeptId] = useState<string>("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<
-    "all" | "complete" | "in_progress" | "overdue"
-  >("all");
-  const [page, setPage] = useState(1);
-  const pageSize = 8;
 
   const isHrAdmin = user?.role === "hr_admin";
   const isManager = user?.role === "manager";
@@ -71,43 +58,9 @@ export const AnalyticsDashboard: React.FC = () => {
     fetchAnalytics(selectedDeptId || undefined);
   }, [selectedDeptId]);
 
-  // Filtered employee progress list
-  const filteredEmployees = useMemo(() => {
-    const emps = data?.employees || [];
-    return emps.filter((emp: EmployeeAnalyticsItem) => {
-      const matchesSearch =
-        !searchQuery ||
-        emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        emp.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        emp.jobRole.toLowerCase().includes(searchQuery.toLowerCase());
-
-      if (!matchesSearch) return false;
-
-      if (statusFilter === "complete")
-        return emp.progress.percentComplete === 100;
-      if (statusFilter === "overdue") return emp.progress.overdueTasks > 0;
-      if (statusFilter === "in_progress")
-        return (
-          emp.progress.percentComplete < 100 && emp.progress.overdueTasks === 0
-        );
-
-      return true;
-    });
-  }, [data?.employees, searchQuery, statusFilter]);
-
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredEmployees.length / pageSize),
-  );
-  const paginatedEmployees = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return filteredEmployees.slice(start, start + pageSize);
-  }, [filteredEmployees, page, pageSize]);
-
   // Handle department filter change for HR Admin
   const handleDepartmentChange = (deptId: string) => {
     setSelectedDeptId(deptId);
-    setPage(1);
   };
 
   if (loading && !data) {
@@ -143,8 +96,6 @@ export const AnalyticsDashboard: React.FC = () => {
     data?.departmentRollups || (data as any)?.departments || [];
   const templateRollups =
     data?.templateRollups || (data as any)?.templates || [];
-  const taskPerformance =
-    data?.taskPerformance || (data as any)?.taskAverages || [];
 
   // SVG Circular Gauge calculations
   const radius = 40;
@@ -158,16 +109,13 @@ export const AnalyticsDashboard: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/[0.06] pb-5">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-              <ChartBar size={22} weight="duotone" />
-            </div>
             <div>
-              <h1 className="text-xl font-medium tracking-tight text-[#f7f8f8]">
+              <h1 className="text-2xl font-medium tracking-tight text-[#f7f8f8]">
                 {isManager && data?.department
                   ? `${data.department.name} Analytics`
                   : "Onboarding Analytics"}
               </h1>
-              <p className="text-xs text-[#8a8f98] mt-0.5">
+              <p className="text-sm text-[#8a8f98] mt-0.5">
                 Real-time completion metrics, workflow velocity, and team
                 onboarding health.
               </p>
@@ -349,7 +297,13 @@ export const AnalyticsDashboard: React.FC = () => {
       </div>
 
       {/* Middle Section: Department Rollups & Template Velocity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div
+        className={`grid grid-cols-1 ${
+          isHrAdmin && !selectedDeptId && departmentRollups.length > 0
+            ? "lg:grid-cols-2"
+            : ""
+        } gap-4`}
+      >
         {/* Department Rollups (or Template Summary if Manager) */}
         {isHrAdmin && !selectedDeptId && departmentRollups.length > 0 && (
           <div className="bg-[#121316] border border-white/[0.06] rounded-lg p-4 space-y-3.5">
@@ -477,301 +431,6 @@ export const AnalyticsDashboard: React.FC = () => {
             </div>
           )}
         </div>
-
-        {/* Task Velocity Watchlist / Bottlenecks */}
-        <div className="bg-[#121316] border border-white/[0.06] rounded-lg p-4 space-y-3.5">
-          <div className="flex items-center justify-between border-b border-white/[0.04] pb-2.5">
-            <div className="flex items-center gap-2">
-              <TrendUp size={16} className="text-[#8a8f98]" />
-              <h2 className="text-sm font-medium text-[#f7f8f8]">
-                Task Velocity & Watchlist
-              </h2>
-            </div>
-            <span className="text-[11px] text-[#8a8f98]">Top workflows</span>
-          </div>
-
-          {taskPerformance.length === 0 ? (
-            <p className="text-xs text-[#8a8f98] py-4 text-center">
-              No task performance data recorded yet.
-            </p>
-          ) : (
-            <div className="space-y-2.5">
-              {taskPerformance.slice(0, 6).map((task: any, idx: number) => {
-                const taskTitle = task.taskTitle || task.title;
-                const taskAvgDays =
-                  task.avgDaysToComplete ?? task.averageTimeToCompleteDays ?? 0;
-                return (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between p-2 rounded-md bg-white/[0.02] border border-white/[0.04] text-xs hover:border-white/[0.08] transition-colors"
-                  >
-                    <div className="min-w-0 pr-3">
-                      <div className="font-medium text-[#f7f8f8] truncate">
-                        {taskTitle}
-                      </div>
-                      <div className="flex items-center gap-2 text-[10px] text-[#8a8f98] mt-0.5">
-                        <span className="capitalize">{task.category}</span>
-                        <span>•</span>
-                        <span className="capitalize">
-                          {task.assigneeType} task
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-right shrink-0">
-                      {task.overdueCount > 0 && (
-                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20">
-                          {task.overdueCount} overdue
-                        </span>
-                      )}
-                      <span className="text-[11px] font-medium text-[#d0d6e0]">
-                        {taskAvgDays}d avg
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Bottom Section: Individual Employee Progress Roster */}
-      <div className="bg-[#121316] border border-white/[0.06] rounded-lg p-5 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.04] pb-4">
-          <div>
-            <h2 className="text-sm font-medium text-[#f7f8f8]">
-              Employee Onboarding Roster
-            </h2>
-            <p className="text-xs text-[#8a8f98] mt-0.5">
-              Individual task progress, overdue indicators, and milestone
-              tracking.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2.5 flex-wrap">
-            {/* Search Input */}
-            <div className="relative">
-              <MagnifyingGlass
-                size={14}
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#8a8f98]"
-              />
-              <input
-                type="text"
-                placeholder="Search employees..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setPage(1);
-                }}
-                className="bg-[#090a0c] border border-white/[0.08] focus:border-indigo-500/60 rounded-md pl-8 pr-3 py-1.5 text-xs text-[#f7f8f8] placeholder-[#8a8f98] focus:outline-none transition-colors w-44 sm:w-56"
-              />
-            </div>
-
-            {/* Status Filter Pill */}
-            <div className="flex items-center gap-1 bg-[#090a0c] border border-white/[0.08] rounded-md p-0.5 text-xs">
-              <button
-                type="button"
-                onClick={() => {
-                  setStatusFilter("all");
-                  setPage(1);
-                }}
-                className={`px-2 py-1 rounded transition-colors cursor-pointer ${
-                  statusFilter === "all"
-                    ? "bg-white/[0.08] text-white font-medium"
-                    : "text-[#8a8f98] hover:text-white"
-                }`}
-              >
-                All
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setStatusFilter("in_progress");
-                  setPage(1);
-                }}
-                className={`px-2 py-1 rounded transition-colors cursor-pointer ${
-                  statusFilter === "in_progress"
-                    ? "bg-white/[0.08] text-white font-medium"
-                    : "text-[#8a8f98] hover:text-white"
-                }`}
-              >
-                In Progress
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setStatusFilter("overdue");
-                  setPage(1);
-                }}
-                className={`px-2 py-1 rounded transition-colors cursor-pointer ${
-                  statusFilter === "overdue"
-                    ? "bg-white/[0.08] text-white font-medium"
-                    : "text-[#8a8f98] hover:text-white"
-                }`}
-              >
-                Overdue
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setStatusFilter("complete");
-                  setPage(1);
-                }}
-                className={`px-2 py-1 rounded transition-colors cursor-pointer ${
-                  statusFilter === "complete"
-                    ? "bg-white/[0.08] text-white font-medium"
-                    : "text-[#8a8f98] hover:text-white"
-                }`}
-              >
-                Complete
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Table */}
-        {paginatedEmployees.length === 0 ? (
-          <div className="text-center py-10 text-xs text-[#8a8f98]">
-            No employees matching criteria found.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-[#d0d6e0]">
-              <thead>
-                <tr className="border-b border-white/[0.04] text-[11px] text-[#8a8f98] uppercase tracking-wider">
-                  <th className="py-2.5 font-medium">Employee</th>
-                  <th className="py-2.5 font-medium">Department</th>
-                  <th className="py-2.5 font-medium w-48">Progress</th>
-                  <th className="py-2.5 font-medium text-center">Tasks</th>
-                  <th className="py-2.5 font-medium text-right">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.03]">
-                {paginatedEmployees.map((emp) => {
-                  const isCompleted = emp.progress.percentComplete === 100;
-                  const isOverdue = emp.progress.overdueTasks > 0;
-
-                  return (
-                    <tr
-                      key={emp.id}
-                      className="hover:bg-white/[0.02] transition-colors duration-150"
-                    >
-                      <td className="py-3">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-full bg-white/[0.08] text-white flex items-center justify-center font-bold text-[10px] shrink-0 border border-white/[0.06]">
-                            {emp.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="font-medium text-[#f7f8f8] truncate">
-                              {emp.name}
-                            </div>
-                            <div className="text-[11px] text-[#8a8f98] truncate">
-                              {emp.jobRole}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="py-3 text-[#a0a6b5]">
-                        {emp.department?.name || "—"}
-                      </td>
-
-                      <td className="py-3">
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-[11px]">
-                            <span className="font-medium text-white">
-                              {emp.progress.percentComplete}%
-                            </span>
-                            <span className="text-[#8a8f98]">
-                              {emp.progress.completedTasks}/
-                              {emp.progress.totalTasks}
-                            </span>
-                          </div>
-                          <div className="h-1.5 w-full bg-white/[0.06] rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full transition-all duration-500 ease-out ${
-                                isCompleted
-                                  ? "bg-emerald-400"
-                                  : isOverdue
-                                    ? "bg-amber-400"
-                                    : "bg-indigo-400"
-                              }`}
-                              style={{
-                                width: `${emp.progress.percentComplete}%`,
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="py-3 text-center text-[#d0d6e0]">
-                        <span>
-                          {emp.progress.completedTasks} /{" "}
-                          {emp.progress.totalTasks}
-                        </span>
-                        {emp.progress.overdueTasks > 0 && (
-                          <div className="text-[10px] text-rose-400 font-medium">
-                            {emp.progress.overdueTasks} overdue
-                          </div>
-                        )}
-                      </td>
-
-                      <td className="py-3 text-right">
-                        {isCompleted ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
-                            <CheckCircle size={12} weight="bold" /> Completed
-                          </span>
-                        ) : isOverdue ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 font-medium">
-                            <WarningCircle size={12} weight="bold" /> Overdue
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 font-medium">
-                            In Progress
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Pagination footer */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between pt-3 border-t border-white/[0.04] text-xs text-[#8a8f98]">
-            <span>
-              Showing{" "}
-              {Math.min((page - 1) * pageSize + 1, filteredEmployees.length)}–
-              {Math.min(page * pageSize, filteredEmployees.length)} of{" "}
-              {filteredEmployees.length} employees
-            </span>
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1}
-                className="px-2.5 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] text-[#d0d6e0] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                Previous
-              </button>
-              <span className="px-2 text-[#d0d6e0]">
-                {page} of {totalPages}
-              </span>
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages}
-                className="px-2.5 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] text-[#d0d6e0] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

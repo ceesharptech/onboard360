@@ -64,6 +64,8 @@ export const TrainingLibrary: React.FC = () => {
   const { user } = useAuth();
   const toast = useToast();
   const isHrAdmin = user?.role === "hr_admin";
+  const isManager = user?.role === "manager";
+  const canManage = isHrAdmin || isManager;
 
   const [entries, setEntries] = useState<TrainingEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -336,20 +338,20 @@ export const TrainingLibrary: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.06] pb-6">
           <div>
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+              {/* <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
                 <Video size={18} weight="duotone" />
-              </div>
-              <h1 className="text-xl font-medium tracking-tight text-[#f7f8f8]">
+              </div> */}
+              <h1 className="text-2xl font-medium tracking-tight text-[#f7f8f8]">
                 Training & Guides
               </h1>
             </div>
-            <p className="mt-1.5 text-xs text-[#8a8f98]">
+            <p className="mt-1.5 text-sm text-[#8a8f98]">
               Curated onboarding videos, walkthroughs, and reference guides
               available company-wide.
             </p>
           </div>
 
-          {isHrAdmin && (
+          {canManage && (
             <Button
               variant="primary"
               size="sm"
@@ -475,11 +477,11 @@ export const TrainingLibrary: React.FC = () => {
             <p className="text-xs text-[#8a8f98] max-w-sm mx-auto mt-1">
               {search
                 ? `No results for "${search}". Try checking for typos or searching a different term.`
-                : isHrAdmin
+                : canManage
                   ? "Start building the onboarding catalog by adding training videos and written guides."
                   : "Your company has not published any training entries yet. Check back soon!"}
             </p>
-            {isHrAdmin && !search && (
+            {canManage && !search && (
               <Button
                 variant="primary"
                 size="sm"
@@ -576,8 +578,8 @@ export const TrainingLibrary: React.FC = () => {
                         )}
                       </span>
 
-                      {/* Admin Controls */}
-                      {isHrAdmin && (
+                      {/* Admin / Manager Controls */}
+                      {canManage && (
                         <div
                           className="flex items-center gap-1 opacity-80 group-hover:opacity-100"
                           onClick={(e) => e.stopPropagation()}
