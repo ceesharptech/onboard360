@@ -344,7 +344,13 @@ export const AppShell: React.FC<AppShellProps> = ({
         </header>
 
         {/* Content Viewport */}
-        <main className="flex-1 overflow-y-auto p-5 sm:p-7 md:p-8 text-left relative">
+        <main
+          className={`flex-1 text-left relative ${
+            currentTab === "qorra"
+              ? "overflow-hidden p-0 flex flex-col"
+              : "overflow-y-auto p-5 sm:p-7 md:p-8"
+          }`}
+        >
           {children}
         </main>
       </div>

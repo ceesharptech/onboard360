@@ -115,7 +115,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   if (!content) return null;
 
   return (
-    <div className={`text-xs text-[#d0d6e0] leading-relaxed ${className}`}>
+    <div className={`text-sm text-[#d0d6e0] leading-relaxed ${className}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={defaultMarkdownComponents}
